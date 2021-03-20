@@ -40,53 +40,42 @@
 		</v-container>
 
 		<!-- chart -->
-		<Chart_Bar
-				style="height: 90%;"
+		<Chart_Pie
+				style="height: 70%;"
 				v-bind:Interface_data="chart_data"
 				v-bind:Interface_label="chart_label"
 		/>
 		<!-- chart -->
-
 	</div>
 </template>
 
 
 <script>
-import Chart_Bar from "@/components/Chart_Bar";
-
+import Chart_Pie from "@/components/Chart_Pie";
+import {ItemManager_addCallback, ItemManager_clearCallback, ItemManager_setItem} from "@/utility/ItemManager";
 import {
-	ItemManager_addCallback,
-	ItemManager_clearCallback,
-	ItemManager_setItem
-} from "@/utility/ItemManager";
-
-import {
-	Observer_LogData_addCallback_Add,
-	Observer_LogData_addCallback_Config,
+	Observer_LogData_addCallback_Add, Observer_LogData_addCallback_Config,
 	Observer_LogData_addCallback_Rm,
 	Observer_LogData_create
 } from "@/utility/Observer_LogData";
 
 
 export default {
-	name: "Component_ChartBar",
+	name: "Component_ChartPie",
 
 	components: {
-		Chart_Bar
+		Chart_Pie
 	},
 
 	data: () => ({
-		// observer
-		id_observer: -1,
-
 		// chart
 		chart_data: [[]],
 		chart_label: [[]],
 
 		dataset: [],
 
-		// title, editor
-		text_title: "Bar Chart"
+		// title
+		text_title: "Pie Chart"
 	}),
 
 	methods: {
@@ -119,12 +108,11 @@ export default {
 			const color = data.custom.rgba_color;
 
 			this.dataset.push({
-				id:								data.log_data.id,
-				data: 						data.log_data.data,
-				borderColor:			"rgba(" + color.r + "," + color.g + "," + color.b + "," + color.a + ")",
-				backgroundColor:	"rgba(" + color.r + "," + color.g + "," + color.b + "," + color.a + ")",
-				fill:							false,
-				label:						data.custom.label,
+				id:				data.log_data.id,
+				data: 		data.log_data.data.length === 0 ? 0 : data.log_data.data[0],
+				color: 		"rgba(" + color.r + "," + color.g + "," + color.b + "," + color.a + ")",
+				fill:			false,
+				label:		data.custom.label,
 			});
 			this.Internal_updateGraph();
 		},
@@ -152,10 +140,9 @@ export default {
 			const target = this.dataset[index];
 			const color = data.custom.rgba_color;
 
-			target.data 						= data.log_data.data;
-			target.borderColor			= "rgba(" + color.r + "," + color.g + "," + color.b + "," + color.a + ")";
-			target.backgroundColor	= "rgba(" + color.r + "," + color.g + "," + color.b + "," + color.a + ")";
-			target.label						= data.custom.label;
+			target.data 	= data.log_data.data.length === 0 ? 0 : data.log_data.data[0];
+			target.color	= "rgba(" + color.r + "," + color.g + "," + color.b + "," + color.a + ")";
+			target.label	= data.custom.label;
 
 			// this.dataset.splice(index, 1, target);
 			this.Internal_updateGraph();
@@ -167,22 +154,25 @@ export default {
 		},
 
 		Internal_updateGraph() {
-			// CONFIG
-			let length = 0;
-			for (let i = 0; i < this.dataset.length; ++i) {
-				length = this.dataset[i].data.length <= length ? length : this.dataset[i].data.length;
-			}
-
-			// CORE
-			// label
+			// dataset, label
+			const data_list = [];
+			const color_list = [];
 			const label_list = [];
 
-			for (let i = 0; i < length; ++i) {
-				label_list.push(i.toString());
+			for (let i = 0; i < this.dataset.length; ++i) {
+				data_list.push(this.dataset[i].data);
+				color_list.push(this.dataset[i].color);
+				label_list.push(this.dataset[i].label);
 			}
 
-			// update graph
-			this.chart_data.splice(0, 1, this.dataset);
+			const data = [{
+				data: 						data_list,
+				backgroundColor: 	color_list,
+				borderColor: 			"transparent"
+			}];
+
+			// update
+			this.chart_data.splice(0, 1, data);
 			this.chart_label.splice(0, 1, label_list);
 		}
 	},
@@ -199,6 +189,7 @@ export default {
 	},
 
 	watch: {
+
 	}
 }
 </script>

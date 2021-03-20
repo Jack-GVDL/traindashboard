@@ -1,6 +1,7 @@
 <template>
 	<div
-			style="background-color: #FFFFFF; width: 100%; "
+			style="width: 100%;"
+			class="background_back"
 	>
 		<grid-layout
 				:layout.sync="layout"
@@ -16,6 +17,7 @@
 		>
 			<grid-item
 					v-for="item in layout"
+					:static="item.is_static"
 					:x="item.x"
 					:y="item.y"
 					:w="item.w"
@@ -26,35 +28,46 @@
 					drag-ignore-from=".no-drag"
 			>
 				<v-card
-						style="height: 100%;"
+						style="height: 100%; background-color: #2e3442;"
+						class="background_panel"
 						outlined
 				>
-					<v-container fluid class="fill-height d-flex align-start">
+					<v-container
+						fluid
+						class="fill-height d-flex align-start"
+					>
 
 						<v-row class="draggable">
 							<v-spacer></v-spacer>
 
 							<v-col class="py-1 my-0 d-flex justify-end">
+
+								<!-- pin button -->
 								<v-btn
-										icon
-										small
+									@click="Handler_pin(item.i);"
+									dark
+									icon
+									small
 								>
 									<v-icon
-											@click="Handler_minimize(item.i);"
-											small
+										small
+										color="white"
 									>
-										{{ !item.is_minimize ? icon_minimize : icon_expand }}
+										{{ item.is_static ? "mdi-pin" : "mdi-pin-off" }}
 									</v-icon>
 								</v-btn>
+								<!-- pin button -->
 
 								<!-- close button -->
 								<v-btn
 										@click="Handler_close(item.i);"
+										dark
 										icon
 										small
 								>
 									<v-icon
 										small
+										color="white"
 									>
 										mdi-close
 									</v-icon>
@@ -66,14 +79,20 @@
 						</v-row>
 
 						<v-row
-								v-show="!item.is_minimize"
 								style="height: 90%;"
 								class="py-0"
 						>
 							<v-col
 									class="pt-0 fill-height"
 							>
-								<div :is="item.component"></div>
+
+								<!-- component -->
+								<div
+										:is="item.component"
+								>
+								</div>
+								<!-- component -->
+
 							</v-col>
 						</v-row>
 
@@ -89,6 +108,9 @@
 <script>
 import { GridLayout, GridItem } from "vue-grid-layout";
 import Component_ChartLine from "@/components/Component_ChartLine";
+import Component_ChartBar from "@/components/Component_ChartBar";
+import Component_ChartPie from "@/components/Component_ChartPie";
+import Component_SingleNumber from "@/components/Component_SingleNumber";
 
 
 export default {
@@ -97,7 +119,10 @@ export default {
 	components: {
 		GridLayout,
 		GridItem,
-		Component_ChartLine
+		Component_ChartLine,
+		Component_ChartBar,
+		Component_ChartPie,
+		Component_SingleNumber,
 	},
 
 	props: [
@@ -106,17 +131,17 @@ export default {
 
 	data: () => ({
 		// grid system
-		draggable: true,
-		resizable: true,
+		draggable:  true,
+		resizable:  true,
 		responsive: true,
 
 		layout: [],
 		layout_index: 0,
-		layout_col: 3,
+		layout_col:   3,
 
 		// display
-		icon_minimize: "mdi-minus",
-		icon_expand: "mdi-plus"
+		icon_minimize:  "mdi-minus",
+		icon_expand:    "mdi-plus"
 	}),
 
 	methods: {
@@ -127,31 +152,21 @@ export default {
 			this.Internal_rmWidget(index);
 		},
 
-		Handler_minimize(id) {
+		Handler_pin(id) {
 			const index = this.layout.findIndex(element => element.i === id);
 			if (index < 0) return;
-
-			this.layout[index].is_minimize = !this.layout[index].is_minimize;
-			if (this.layout[index].is_minimize) {
-				this.layout[index].full_h = this.layout[index].h;
-				this.layout[index].h = 1;
-			}
-			else {
-				this.layout[index].h = this.layout[index].full_h;
-			}
+			this.layout[index].is_static = !this.layout[index].is_static;
 		},
 
 		// internal
 		Internal_addWidget(component) {
 			this.layout.push({
-				x: 0,
-				y: this.layout.length * 5,
-				w: 2,
-				h: 5,
-				i: this.layout_index,
-
-				is_minimize: false,
-				full_h: 5,
+				is_static:  false,
+				x:          0,
+				y:          this.layout.length * 5,
+				w:          2,
+				h:          10,
+				i:          this.layout_index,
 
 				component: component
 			});
@@ -176,6 +191,22 @@ export default {
 
 
 <style scoped>
+/*.background_back {*/
+/*	background-color: #12161f;*/
+/*}*/
+
+/*.background_panel_darken_1 {*/
+/*	background-color: #1c212c;*/
+/*}*/
+
+/*.background_panel {*/
+/*	background-color: #2e3442;*/
+/*}*/
+
+/*.background_panel_lighten_1 {*/
+/*	background-color: #43485a;*/
+/*}*/
+
 .draggable {
 }
 

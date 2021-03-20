@@ -1,10 +1,50 @@
 <template>
 	<div class="fill-height">
+
+		<v-container
+			class="my-0 py-0"
+		>
+			<v-row>
+
+				<!--  title -->
+				<v-col
+						class="mx-2 white--text text-h6 font-weight-light d-flex justify-space-between"
+				>
+					{{ text_title }}
+				</v-col>
+				<!-- title -->
+
+				<!-- button - edit -->
+				<v-col
+						class="d-flex justify-end"
+				>
+					<v-btn
+							@click="Handler_editor"
+							dark
+							icon
+							small
+					>
+						<v-icon
+								small
+								color="#C6C8CA"
+						>
+							mdi-cog
+						</v-icon>
+					</v-btn>
+				</v-col>
+				<!-- button - edit -->
+
+			</v-row>
+		</v-container>
+
+		<!-- chart -->
 		<Chart_Line
-				style="height: 100%;"
+				style="height: 90%;"
 				v-bind:Interface_data="chart_data"
 				v-bind:Interface_label="chart_label"
 		/>
+		<!-- chart -->
+
 	</div>
 </template>
 
@@ -12,34 +52,154 @@
 <script>
 import Chart_Line from "@/components/Chart_Line";
 
+import {
+	getPalette
+} from "@/utility/Utility";
+
+import {
+	ItemManager_addCallback, ItemManager_clearCallback,
+	ItemManager_setItem
+} from "@/utility/ItemManager";
+
+import {
+	Observer_LogData_create,
+	Observer_LogData_addCallback_Add,
+	Observer_LogData_addCallback_Rm
+} from "@/utility/Observer_LogData";
+
+import {
+	Observer_LogData_addCallback_Config
+} from "@/utility/Observer_LogData";
+
 
 export default {
 	name: "Component_ChartLine",
+
 	components: {
 		Chart_Line
 	},
 
 	data: () => ({
-		chart_data: [[]],
-		chart_label: [[]]
+		// observer
+		id_observer: -1,
+
+		// chart interface
+		chart_data: 	[[]],
+		chart_label: 	[[]],
+
+		dataset: [],
+
+		// title, editor
+		text_title: "Line Chart"
 	}),
 
 	methods: {
+		Handler_editor() {
+			ItemManager_setItem("Editor/component", [
+				{
+					name: "Editor_Title"
+				},
+				{
+					name: "Editor_Dataset"
+				}
+			]);
 
+			// editor
+			ItemManager_setItem("Editor/enable", true);
+
+			// editor - dataset
+			ItemManager_setItem("Editor/Dataset/id_observer", this.id_observer);
+
+			// editor - title
+			ItemManager_setItem("Editor/Title/data", this.text_title);
+			ItemManager_clearCallback("Editor/Title/hook_update");
+			ItemManager_addCallback("Editor/Title/hook_update", this.Hook_updateTitle);
+		},
+
+		Hook_Observer_addData(data) {
+			if (data == null) return;
+
+			// get color
+			const color = data.custom.rgba_color;
+
+			this.dataset.push({
+				id:								data.log_data.id,
+				data: 						data.log_data.data,
+				borderColor:			"rgba(" + color.r + "," + color.g + "," + color.b + "," + color.a + ")",
+				backgroundColor:	"rgba(" + color.r + "," + color.g + "," + color.b + "," + color.a + ")",
+				fill:							false,
+				label:						data.custom.label,
+			});
+			this.Internal_updateGraph();
+		},
+
+		Hook_Observer_rmData(data) {
+			if (data == null) return;
+
+			// get index
+			const index = this.dataset.findIndex(element => element.id === data.log_data.id);
+			if (index < 0) return;
+
+			// remove target
+			this.dataset.splice(index, 1);
+			this.Internal_updateGraph();
+		},
+
+		Hook_Observer_configData(data) {
+			if (data == null) return;
+
+			// get index
+			const index = this.dataset.findIndex(element => element.id === data.log_data.id);
+			if (index < 0) return;
+
+			// update target
+			const target = this.dataset[index];
+			const color = data.custom.rgba_color;
+
+			target.data 						= data.log_data.data;
+			target.borderColor			= "rgba(" + color.r + "," + color.g + "," + color.b + "," + color.a + ")";
+			target.backgroundColor	= "rgba(" + color.r + "," + color.g + "," + color.b + "," + color.a + ")";
+			target.label						= data.custom.label;
+
+			// this.dataset.splice(index, 1, target);
+			this.Internal_updateGraph();
+		},
+
+		Hook_updateTitle(title) {
+			if (title == null) return;
+			this.text_title = title;
+		},
+
+		Internal_updateGraph() {
+			// CONFIG
+			let length = 0;
+			for (let i = 0; i < this.dataset.length; ++i) {
+				length = this.dataset[i].data.length <= length ? length : this.dataset[i].data.length;
+			}
+
+			// CORE
+			// label
+			const label_list = [];
+
+			for (let i = 0; i < length; ++i) {
+				label_list.push(i.toString());
+			}
+
+			// update graph
+			this.chart_data.splice(0, 1, this.dataset);
+			this.chart_label.splice(0, 1, label_list);
+		}
 	},
 
 	mounted() {
-		// TODO: test
-		const temp_data = [];
-		const temp_label = [];
+		// update graph
+		this.Internal_updateGraph();
 
-		for (let i = 0; i < 10; ++i) {
-			temp_data.push(i * i);
-			temp_label.push(i.toString());
-		}
-
-		this.chart_data.splice(0, 1, temp_data);
-		this.chart_label.splice(0, 1, temp_label);
+		// observer
+		this.id_observer = Observer_LogData_create();
+		Observer_LogData_addCallback_Add(				this.id_observer, this.Hook_Observer_addData);
+		Observer_LogData_addCallback_Rm(				this.id_observer, this.Hook_Observer_rmData);
+		Observer_LogData_addCallback_Config(		this.id_observer, this.Hook_Observer_configData);
 	},
 
 	watch: {
@@ -50,7 +210,4 @@ export default {
 
 
 <style scoped>
-.height_responsive {
-	height: 100% !important;
-}
 </style>

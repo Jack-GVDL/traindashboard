@@ -1,7 +1,7 @@
 <template>
 	<div class="d-flex justify-start fill-height">
 
-		<!-- sidebar - right -->
+		<!-- sidebar -->
 		<v-container
 				style="width: 300px;"
 				class="px-0 py-0"
@@ -16,7 +16,7 @@
 
 				<!-- drawer left -->
 				<v-navigation-drawer
-						style="background-color: #1A237E;"
+						class="background_panel_darken_1"
 						dense
 						mini-variant
 						mini-variant-width="50"
@@ -54,32 +54,128 @@
 
 				<!-- drawer right -->
 				<v-navigation-drawer
-						style="background-color: #283593;"
+						class="background_panel"
 						width="250"
 						permanent
 				>
-					<v-list-item
-							v-for="item in list_widget"
-							link
-							@click="Handler_addWidget(item)"
-					>
+					<div style="height: 20px;"></div>
 
-						<v-list-item-avatar>
-							<v-icon
+					<!-- list control -->
+					<div class="px-2 d-flex justify-end">
+						<v-menu offset-y>
+
+							<!-- menu enable button -->
+							<template
+								class="d-flex align-center"
+								v-slot:activator="{ on, attr }"
+							>
+								<div
+									class="white--text text-body-2 font-weight-light"
+								>
+									{{ widget_sort_text }}
+
+									<v-btn
+										dark
+										icon
+										v-bind="attr"
+										v-on="on"
+										small
+									>
+										<v-icon
+											color="white"
+											small
+										>
+											mdi-cog
+										</v-icon>
+									</v-btn>
+								</div>
+							</template>
+							<!-- menu enable button -->
+
+							<!-- menu list -->
+							<v-list
+								class="Main_opacity_1"
+							>
+								<v-list-item
+									v-for="(item, index) in widget_sort_mode_list"
+									@click="Handler_sortList(index)"
+								>
+									<div
+										class="white--text font-weight-light text-body-2"
+									>
+										{{ item }}
+									</div>
+								</v-list-item>
+							</v-list>
+							<!-- menu list -->
+
+						</v-menu>
+					</div>
+					<!-- list control -->
+
+					<v-list
+						dense
+						height="90vh"
+						expand
+					>
+						<v-list-item
+								v-for="item in list_widget"
+						>
+
+							<v-list-group
+									dense
 									color="white"
 							>
-								{{ item.icon }}
-							</v-icon>
-						</v-list-item-avatar>
+								<template
+										v-slot:activator
+										style="height: 20px;"
+								>
+									<v-list-item-icon>
+										<v-icon
+												color="white"
+										>
+											{{ item.icon }}
+										</v-icon>
+									</v-list-item-icon>
 
-						<v-list-item-content>
-							<v-list-item-title
-									class="white--text font-weight-light"
-							>
-								{{ item.name }}
-							</v-list-item-title>
-						</v-list-item-content>
-					</v-list-item>
+									<v-list-item-title
+											class="white--text"
+									>
+										{{ item.name }}
+									</v-list-item-title>
+								</template>
+
+								<v-list-item
+										style="height: 20px;"
+										@click="Handler_addWidget(temp)"
+										v-for="temp in item.list"
+										link
+								>
+
+									<v-list-item-avatar>
+										<v-icon
+												color="white"
+												small
+										>
+											{{ temp.icon }}
+										</v-icon>
+									</v-list-item-avatar>
+
+									<v-list-item-content
+									>
+										<v-list-item-title
+												class="white--text font-weight-light"
+										>
+											{{ temp.name }}
+										</v-list-item-title>
+									</v-list-item-content>
+
+								</v-list-item>
+							</v-list-group>
+
+						</v-list-item>
+					</v-list>
+
 				</v-navigation-drawer>
 				<!-- drawer right -->
 
@@ -87,9 +183,15 @@
 		</v-container>
 		<!-- sidebar -->
 
+		<!-- dashboard -->
 		<Dashboard
 				v-bind:Interface_addWidget="Interface_addWidget"
 		/>
+		<!-- dashboard -->
+
+		<!-- sidebar - right -->
+		<Sidebar_Editor/>
+		<!-- sidebar - right -->
 
 	</div>
 </template>
@@ -97,38 +199,64 @@
 
 <script>
 import Dashboard from "@/views/Dashboard";
+import Sidebar_Editor from "@/views/Sidebar_Editor";
 
 
 export default {
 	name: "Main",
 
 	components: {
+		Sidebar_Editor,
 		Dashboard
 	},
 
 	data: () => ({
 		// sidebar
 		list_widget: [
+		],
+
+		list_widget_graph: [
 			{
+				id:   -1,
 				name: "Line Chart",
-				icon: "mdi-plus",
+				icon: "",
 				component: "Component_ChartLine"
 			},
 			{
+				id:   -1,
 				name: "Bar Chart",
-				icon: "mdi-minus",
-				component: "Component_ChartLine"
+				icon: "",
+				component: "Component_ChartBar"
 			},
 			{
+				id:   -1,
 				name: "Pie Chart",
-				icon: "mdi-plus",
-				component: "Component_ChartLine"
+				icon: "",
+				component: "Component_ChartPie"
+			}
+		],
+
+		list_widget_number: [
+			{
+				id:         -1,
+				name:       "Single Number",
+				icon:       "",
+				component:  "Component_SingleNumber"
 			}
 		],
 
 		// interface
 		Interface_addWidget: [],
-		is_show_sidebar_right: false
+		is_show_sidebar_right: false,
+
+		// menu
+		widget_sort_mode_list: [
+			"Sort (Default)",
+			"Sort (Lexical)"
+		],
+		widget_sort_index: 0,
+		widget_sort_func_list: [],
+		widget_sort_text: "",
 	}),
 
 	methods: {
@@ -138,15 +266,119 @@ export default {
 
 		Handler_toggleSidebar() {
 			this.is_show_sidebar_right = !this.is_show_sidebar_right;
-		}
+		},
+
+		Handler_sortList(index) {
+			if (index < 0 || index >= this.widget_sort_func_list.length) return;
+			this.widget_sort_index = index;
+			this.Internal_sortWidgetList();
+		},
+
+		Internal_sortWidgetList() {
+			this.widget_sort_func_list[this.widget_sort_index]();
+			this.widget_sort_text = this.widget_sort_mode_list[this.widget_sort_index];
+		},
+
+		Internal_sortWidgetList_ID() {
+			// sort sub item in the list
+			for (let i = 0; i < this.list_widget.length; ++i) {
+				const list = this.list_widget[i].list;
+				list.sort(
+					(a, b) => a.id < b.id ? -1 : 1
+				);
+			}
+
+			// sort item in the list
+			this.list_widget.sort(
+				(a, b) => a.id < b.id ? -1 : 1
+			);
+		},
+
+		Internal_sortWidgetList_Lex() {
+			// sort sub item in the list
+			for (let i = 0; i < this.list_widget.length; ++i) {
+				const list = this.list_widget[i].list;
+				list.sort(
+					(a, b) => a.name < b.name ? -1 : 1
+				);
+			}
+
+			// sort item in the list
+			this.list_widget.sort(
+				(a, b) => a.name < b.name ? -1 : 1
+			);
+		},
 	},
 
 	mounted() {
+		// assign id for each widget tab
+		let index = 1;
+
+		for (let i = 0; i < this.list_widget.length; ++i) {
+			this.list_widget[i].id = index;
+			index++;
+		}
+
+		index = 1;
+		for (let i = 0; i < this.list_widget_graph.length; ++i) {
+			this.list_widget_graph[i].id = index;
+			index++;
+		}
+
+		for (let i = 0; i < this.list_widget_number.length; ++i) {
+			this.list_widget_number[i].id = index;
+			index++;
+		}
+
+		// set list widget
+		this.list_widget = [
+			{
+				id:   -1,
+				name: "Chart",
+				list: this.list_widget_graph,
+				icon: "mdi-chart-bar",
+			},
+			{
+				id:   -1,
+				name: "Number",
+				list: this.list_widget_number,
+				icon: "mdi-numeric-1-box-outline",
+			}
+		];
+
+		// sorting
+		this.widget_sort_index = 0;
+		this.widget_sort_func_list.push(this.Internal_sortWidgetList_ID);
+		this.widget_sort_func_list.push(this.Internal_sortWidgetList_Lex);
+		this.Internal_sortWidgetList();
 	}
 }
 </script>
 
 
 <style scoped>
+.background_back {
+	background-color: #12161f;
+}
 
+.background_panel_darken_1 {
+	background-color: #1c212c;
+}
+
+.background_panel {
+	background-color: #2e3442;
+}
+
+.background_panel_lighten_1 {
+	background-color: #43485a;
+}
+
+.v-list-item--dense, .v-list--dense .v-list-item {
+	min-height: 25px;
+}
+
+.Main_opacity_1 {
+	background: rgba(100, 115, 130, 0.7);
+	backdrop-filter: blur(8px);
+}
 </style>
