@@ -20,7 +20,7 @@ function convertHSVtoRGB(h: any, s: any, v: any) {
         case 2: r = p, g = v, b = t; break;
         case 3: r = p, g = q, b = v; break;
         case 4: r = t, g = p, b = v; break;
-        case 5: r = v, g = p, b = q; break;
+        case 5: r = v, g = p, b = q; break;1
     }
     return [
         Math.round(r * 255),

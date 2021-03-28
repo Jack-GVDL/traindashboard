@@ -32,6 +32,7 @@ import {
 } from "@/utility/ItemManager";
 import Editor_Dataset from "@/components/Editor_Dataset";
 import Editor_Title from "@/components/Editor_Title";
+import Editor_ValueConfig from "@/components/Editor_ValueConfig";
 
 
 export default {
@@ -39,7 +40,8 @@ export default {
 
 	components: {
 		Editor_Dataset,
-		Editor_Title
+		Editor_Title,
+		Editor_ValueConfig
 	},
 
 	data: () => ({

@@ -22,20 +22,37 @@
 						style="text-transform: none;"
 						class="mx-2 text-body-2"
 				>
-					Config Dataset
+					{{ text_mode }}
 				</div>
 			</v-btn>
 		</div>
 
 		<div
 			class="my-1"
-		></div>
+		>
+		</div>
 
+		<!-- log data -->
 		<div
 			v-show="is_show_log_data"
 		>
+			<div
+				class="d-flex justify-end"
+			>
+
+				<v-btn
+					@click="Handler_reloadLogData()"
+					icon
+				>
+					<v-icon>
+						mdi-reload
+					</v-icon>
+				</v-btn>
+
+			</div>
 			<Editor_LogData/>
 		</div>
+		<!-- log data -->
 
 		<!-- data table -->
 		<v-data-table
@@ -147,6 +164,7 @@ import {
 	Observer_LogData_rmCallback_Config,
 	Observer_LogData_rmCallback_Rm
 } from "@/utility/Observer_LogData";
+import {Server_update_IDNameList} from "@/utility/Server_Data";
 
 
 export default {
@@ -163,6 +181,8 @@ export default {
 		id_observer: 		-1,
 
 		// log data editor
+		text_mode: "Dataset: Used",
+		editor_mode: 0,
 		is_show_log_data: false,
 
 		// data table
@@ -176,8 +196,26 @@ export default {
 
 	methods: {
 		// log data
+		Handler_reloadLogData() {
+			Server_update_IDNameList();
+		},
+
 		Handler_enableEditor_LogData() {
-			this.is_show_log_data = !this.is_show_log_data;
+			this.editor_mode = (this.editor_mode + 1) % 2;
+
+			switch (this.editor_mode) {
+				// mode: used
+				case 0:
+					this.is_show_log_data = false;
+					this.text_mode = "Dataset: Used";
+					break;
+
+				// mode: all
+				case 1:
+					this.is_show_log_data = true;
+					this.text_mode = "Dataset: All";
+					break;
+			}
 
 			// enable editor - log data
 			// ItemManager_setItem(

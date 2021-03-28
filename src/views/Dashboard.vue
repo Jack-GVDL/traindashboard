@@ -3,6 +3,8 @@
 			style="width: 100%;"
 			class="background_back"
 	>
+		<Topbar/>
+
 		<grid-layout
 				:layout.sync="layout"
 				:col-num="3"
@@ -60,7 +62,7 @@
 
 								<!-- close button -->
 								<v-btn
-										@click="Handler_close(item.i);"
+										@click="Handler_close(item);"
 										dark
 										icon
 										small
@@ -106,23 +108,37 @@
 
 
 <script>
-import { GridLayout, GridItem } from "vue-grid-layout";
+import {
+	GridLayout,
+	GridItem
+} from "vue-grid-layout";
 import Component_ChartLine from "@/components/Component_ChartLine";
 import Component_ChartBar from "@/components/Component_ChartBar";
 import Component_ChartPie from "@/components/Component_ChartPie";
 import Component_SingleNumber from "@/components/Component_SingleNumber";
+import Component_TextField from "@/components/Component_TextField";
+import Component_ItemList from "@/components/Component_ItemList";
+import Topbar from "@/views/Topbar";
+import {
+	WidgetControl_addCallback_addWidget,
+	WidgetControl_addCallback_configWidget,
+	WidgetControl_addCallback_rmWidget, WidgetControl_configWidget, WidgetControl_rmWidget
+} from "@/utility/WidgetControl";
 
 
 export default {
 	name: "Dashboard",
 
 	components: {
+		Topbar,
 		GridLayout,
 		GridItem,
 		Component_ChartLine,
 		Component_ChartBar,
 		Component_ChartPie,
 		Component_SingleNumber,
+		Component_TextField,
+		Component_ItemList,
 	},
 
 	props: [
@@ -136,7 +152,7 @@ export default {
 		responsive: true,
 
 		layout: [],
-		layout_index: 0,
+		layout_index: 1,
 		layout_col:   3,
 
 		// display
@@ -145,11 +161,9 @@ export default {
 	}),
 
 	methods: {
-		// hook
-		Handler_close(id) {
-			const index = this.layout.findIndex(element => element.i === id);
-			if (index < 0) return;
-			this.Internal_rmWidget(index);
+		// handler
+		Handler_close(data) {
+			WidgetControl_rmWidget(data.id);
 		},
 
 		Handler_pin(id) {
@@ -158,9 +172,59 @@ export default {
 			this.layout[index].is_static = !this.layout[index].is_static;
 		},
 
+		// hook
+		Hook_WidgetControl_addWidget(data) {
+			if (data == null) return;
+
+			// check if id existed or not
+			// but normally id should not occur
+			// ...
+
+			// add widget
+			const data_dashboard = this.Internal_addWidget(data.id, data.component);
+
+			// check if data already contain data.custom.dashboard
+			if (data.custom["dashboard"] !== undefined) {
+				const index = this.layout.findIndex(element => element.id === data.id);
+				this.Internal_configWidget(index, data.custom["dashboard"]);
+				return;
+			}
+
+			// add custom
+			WidgetControl_configWidget(data.id, (custom) => {
+				custom["dashboard"] = data_dashboard;
+				return  custom;
+			});
+		},
+
+		Hook_WidgetControl_rmWidget(data) {
+			if (data == null) return;
+
+			// get index
+			const index = this.layout.findIndex(element => element.id === data.id);
+			if (index < 0) return;
+
+			// remove from layout
+			this.Internal_rmWidget(index);
+		},
+
+		Hook_WidgetControl_configWidget(data) {
+			if (data == null) return;
+
+			// get index
+			const index = this.layout.findIndex(element => element.id === data.id);
+			if (index < 0) return;
+
+			// assumed: exist: data.custom.dashboard
+			this.Internal_configWidget(index, data.custom.dashboard);
+		},
+
 		// internal
-		Internal_addWidget(component) {
-			this.layout.push({
+		Internal_addWidget(id, component) {
+			// create
+			const widget = {
+				id:         id,
+
 				is_static:  false,
 				x:          0,
 				y:          this.layout.length * 5,
@@ -168,23 +232,43 @@ export default {
 				h:          10,
 				i:          this.layout_index,
 
-				component: component
-			});
+				component: component,
+			};
 			this.layout_index++;
+
+			// add
+			this.layout.push(widget);
+
+			return widget;
 		},
 
 		Internal_rmWidget(index) {
 			this.layout.splice(index, 1);
-		}
+		},
+
+		Internal_configWidget(index, data) {
+			// reset data
+			this.layout[index].is_static  = data.is_static;
+			this.layout[index].x          = data.x;
+			this.layout[index].y          = data.y;
+			this.layout[index].w          = data.w;
+			this.layout[index].h          = data.h;
+			this.layout[index].i          = data.i;
+			this.layout[index].component  = data.component;
+
+			// update
+			this.layout.splice(index, 1, this.layout[index]);
+		},
 	},
 
 	mounted() {
+		// add callback
+		WidgetControl_addCallback_addWidget(this.Hook_WidgetControl_addWidget);
+		WidgetControl_addCallback_rmWidget(this.Hook_WidgetControl_rmWidget);
+		WidgetControl_addCallback_configWidget(this.Hook_WidgetControl_configWidget);
 	},
 
 	watch: {
-		Interface_addWidget(new_value, old_value){
-			this.Internal_addWidget(new_value[0].component);
-		}
 	}
 }
 </script>

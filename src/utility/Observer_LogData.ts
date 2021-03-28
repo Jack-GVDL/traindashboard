@@ -43,7 +43,8 @@ class Observer_LogData {
         if (!self.log_data_mapper_table.has(hash)) {
 
             // check if reach the number
-            if (self.size_max > 0 && self.size >= self.size_max) return;
+			// this check should be done outside
+            // if (self.size_max > 0 && self.size >= self.size_max) return;
             self.size++;
 
             // event
@@ -175,6 +176,9 @@ function _addDataLog_(id_observer: bigint, id_log_data: bigint) {
     const observer: Observer_LogData = ItemManager_getItem(
         _getPath_Observer_(id_observer));
     if (observer == null) return false;
+
+    // check if reach the max bind number
+	if (observer.size_max >= 0 && observer.size === observer.size_max) return false;
 
     // add callback
     const ret = Server_addCallback_LogData(

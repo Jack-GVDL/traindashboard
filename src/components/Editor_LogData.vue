@@ -1,42 +1,6 @@
 <template>
 	<div>
 
-<!--		&lt;!&ndash; data table &ndash;&gt;-->
-<!--		<v-data-table-->
-<!--				style="background-color: #43485a;"-->
-<!--				:headers="header_list"-->
-<!--				:items="item_list"-->
-<!--				class="background_panel_lighten_1 elevation-0 font-weight-light"-->
-<!--				hide-default-footer-->
-<!--				dense-->
-<!--		>-->
-
-<!--			&lt;!&ndash; is selected &ndash;&gt;-->
-<!--			<template-->
-<!--					v-slot:item.is_selected="{ item }"-->
-<!--					class="d-flex align-center"-->
-<!--			>-->
-<!--				<v-checkbox-->
-<!--						class="my-1 py-1"-->
-<!--						v-model="item.is_selected"-->
-<!--						@click="Handler_selectData(item.id, item.is_selected);"-->
-<!--				>-->
-<!--				</v-checkbox>-->
-<!--			</template>-->
-<!--			&lt;!&ndash; is selected &ndash;&gt;-->
-
-<!--			&lt;!&ndash; data name &ndash;&gt;-->
-<!--			<template-->
-<!--					v-slot:item.name="{ item }"-->
-<!--					class="my-1 py-1"-->
-<!--			>-->
-<!--				{{ item.name }}-->
-<!--			</template>-->
-<!--			&lt;!&ndash; data name &ndash;&gt;-->
-
-<!--		</v-data-table>-->
-<!--		&lt;!&ndash; data table &ndash;&gt;-->
-
 		<v-simple-table
 				style="background-color: #43485a;"
 				dense
@@ -46,8 +10,8 @@
 				<thead>
 					<tr>
 						<th
-								v-for="item in header_list"
-						>{{ item.text }}</th>
+								v-for="item_header in header_list"
+						>{{ item_header.text }}</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -117,7 +81,6 @@ export default {
 			// set the checkbox to be not_selected
 			const index = this.item_list.findIndex(element => element.id === id);
 			if (index >= 0) this.item_list[index].is_selected = false;
-			console.log(this.item_list[index]);
 
 			// bind / unbind data
 			if (is_selected)	Observer_LogData_bindData(	this.id_observer, id);

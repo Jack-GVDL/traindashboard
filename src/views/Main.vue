@@ -22,33 +22,60 @@
 						mini-variant-width="50"
 						permanent
 				>
-					<v-list-item>
-						<v-btn
+					<div
+						style="height: 100%;"
+						class="d-flex flex-column justify-space-between align-center"
+					>
+
+						<!-- top button -->
+						<v-container>
+							<v-row
+								class="py-2"
+							>
+							</v-row>
+
+							<v-row
+								class="py-1 d-flex justify-center"
+							>
+								<v-btn
+									icon
+									color="white"
+								>
+									<v-icon>mdi-plus</v-icon>
+								</v-btn>
+							</v-row>
+
+							<v-row
+								class="py-1 d-flex justify-center"
+							>
+								<v-btn
+									icon
+									color="white"
+								>
+									<v-icon>mdi-plus</v-icon>
+								</v-btn>
+							</v-row>
+						</v-container>
+						<!-- top button -->
+
+						<!-- bottom button -->
+						<div>
+							<v-btn
+								@click="Handler_enableSetting()"
 								icon
 								color="white"
-						>
-							<v-icon>mdi-plus</v-icon>
-						</v-btn>
-					</v-list-item>
+							>
+								<v-icon>mdi-cog</v-icon>
+							</v-btn>
 
-					<v-list-item>
-						<v-btn
-								icon
-								color="white"
-						>
-							<v-icon>mdi-plus</v-icon>
-						</v-btn>
-					</v-list-item>
+							<div
+								class="py-2"
+							>
+							</div>
+						</div>
+						<!-- bottom button -->
 
-					<v-spacer></v-spacer>
-
-<!--					<v-list-item>-->
-<!--						<v-btn-->
-<!--								icon-->
-<!--						>-->
-<!--							<v-icon>mdi-plus</v-icon>-->
-<!--						</v-btn>-->
-<!--					</v-list-item>-->
+					</div>
 				</v-navigation-drawer>
 				<!-- drawer left -->
 
@@ -184,14 +211,16 @@
 		<!-- sidebar -->
 
 		<!-- dashboard -->
-		<Dashboard
-				v-bind:Interface_addWidget="Interface_addWidget"
-		/>
+		<Dashboard/>
 		<!-- dashboard -->
 
-		<!-- sidebar - right -->
+		<!-- sidebar - editor -->
 		<Sidebar_Editor/>
-		<!-- sidebar - right -->
+		<!-- sidebar - editor -->
+
+		<!-- sidebar - setting -->
+		<Sidebar_Setting/>
+		<!-- sidebar - setting -->
 
 	</div>
 </template>
@@ -200,12 +229,20 @@
 <script>
 import Dashboard from "@/views/Dashboard";
 import Sidebar_Editor from "@/views/Sidebar_Editor";
+import Sidebar_Setting from "@/views/Sidebar_Setting";
+import {
+	ItemManager_setItem,
+} from "@/utility/ItemManager";
+import {
+	WidgetControl_addWidget
+} from "@/utility/WidgetControl";
 
 
 export default {
 	name: "Main",
 
 	components: {
+		Sidebar_Setting,
 		Sidebar_Editor,
 		Dashboard
 	},
@@ -245,6 +282,21 @@ export default {
 			}
 		],
 
+		list_widget_text: [
+			{
+				id:         -1,
+				name:       "Text Field",
+				icon:       "",
+				component:  "Component_TextField"
+			},
+			{
+				id:         -1,
+				name:       "Item List",
+				icon:       "",
+				component:  "Component_ItemList"
+			}
+		],
+
 		// interface
 		Interface_addWidget: [],
 		is_show_sidebar_right: false,
@@ -260,8 +312,9 @@ export default {
 	}),
 
 	methods: {
+		// handler
 		Handler_addWidget(widget) {
-			this.Interface_addWidget.splice(0, 1, widget);
+			WidgetControl_addWidget(widget.component);
 		},
 
 		Handler_toggleSidebar() {
@@ -274,6 +327,11 @@ export default {
 			this.Internal_sortWidgetList();
 		},
 
+		Handler_enableSetting() {
+			ItemManager_setItem("Setting/enable", true);
+		},
+
+		// internal
 		Internal_sortWidgetList() {
 			this.widget_sort_func_list[this.widget_sort_index]();
 			this.widget_sort_text = this.widget_sort_mode_list[this.widget_sort_index];
@@ -311,25 +369,6 @@ export default {
 	},
 
 	mounted() {
-		// assign id for each widget tab
-		let index = 1;
-
-		for (let i = 0; i < this.list_widget.length; ++i) {
-			this.list_widget[i].id = index;
-			index++;
-		}
-
-		index = 1;
-		for (let i = 0; i < this.list_widget_graph.length; ++i) {
-			this.list_widget_graph[i].id = index;
-			index++;
-		}
-
-		for (let i = 0; i < this.list_widget_number.length; ++i) {
-			this.list_widget_number[i].id = index;
-			index++;
-		}
-
 		// set list widget
 		this.list_widget = [
 			{
@@ -343,8 +382,28 @@ export default {
 				name: "Number",
 				list: this.list_widget_number,
 				icon: "mdi-numeric-1-box-outline",
+			},
+			{
+				id:   -1,
+				name: "Text",
+				list: this.list_widget_text,
+				icon: "mdi-alpha-a-box-outline",
 			}
 		];
+
+		// assign id for each widget tab
+		let index = 1;
+		for (let i = 0; i < this.list_widget.length; ++i) {
+			// outer
+			this.list_widget[i].id = index;
+			index++;
+
+			// inner
+			if (this.list_widget[i].list == null) continue;
+			for (let j = 0; j < this.list_widget[i].list.length; ++j) {
+				this.list_widget[i].list[j].id = j;
+			}
+		}
 
 		// sorting
 		this.widget_sort_index = 0;

@@ -64,10 +64,7 @@ import {
 import {
 	Observer_LogData_create,
 	Observer_LogData_addCallback_Add,
-	Observer_LogData_addCallback_Rm
-} from "@/utility/Observer_LogData";
-
-import {
+	Observer_LogData_addCallback_Rm,
 	Observer_LogData_addCallback_Config
 } from "@/utility/Observer_LogData";
 
@@ -90,10 +87,31 @@ export default {
 		dataset: [],
 
 		// title, editor
-		text_title: "Line Chart"
+		text_title: "Line Chart",
+
+		// editor info
+		value_config_list: [
+			{
+				id:         0,
+				name:       "Line thickness",
+				component:  "Config_ValueInt",
+				value:      1,
+				callback:   null,
+				custom:     null,
+			},
+			{
+				id:         1,
+				name:       "Fill background",
+				component:  "Config_ValueBool",
+				value:      false,
+				callback:   null,
+				custom:     null,
+			}
+		],
 	}),
 
 	methods: {
+		// handler
 		Handler_editor() {
 			ItemManager_setItem("Editor/component", [
 				{
@@ -101,7 +119,10 @@ export default {
 				},
 				{
 					name: "Editor_Dataset"
-				}
+				},
+				{
+					name: "Editor_ValueConfig"
+				},
 			]);
 
 			// editor
@@ -113,9 +134,15 @@ export default {
 			// editor - title
 			ItemManager_setItem("Editor/Title/data", this.text_title);
 			ItemManager_clearCallback("Editor/Title/hook_update");
-			ItemManager_addCallback("Editor/Title/hook_update", this.Hook_updateTitle);
+			ItemManager_addCallback("Editor/Title/hook_update", this.Hook_updateTitle, false);
+
+			// editor - value config
+			ItemManager_setItem("Editor/ValueConfig/data", this.value_config_list);
+			ItemManager_clearCallback("Editor/ValueConfig/hook_update");
+			ItemManager_addCallback("Editor/ValueConfig/hook_update", this.Hook_updateValue, false);
 		},
 
+		// hook
 		Hook_Observer_addData(data) {
 			if (data == null) return;
 
@@ -129,6 +156,7 @@ export default {
 				backgroundColor:	"rgba(" + color.r + "," + color.g + "," + color.b + "," + color.a + ")",
 				fill:							false,
 				label:						data.custom.label,
+				borderWidth:      1,
 			});
 			this.Internal_updateGraph();
 		},
@@ -170,6 +198,22 @@ export default {
 			this.text_title = title;
 		},
 
+		Hook_updateValue(data) {
+			if (data == null) return;
+
+			// get index
+			const index = this.value_config_list.findIndex(element => element.id === data.id);
+			if (index < 0) return;
+
+			// get callback
+			const callback = this.value_config_list[index].callback;
+			if (callback == null) return;
+
+			// run callback
+			callback(data.value);
+		},
+
+		// internal
 		Internal_updateGraph() {
 			// CONFIG
 			let length = 0;
@@ -188,10 +232,41 @@ export default {
 			// update graph
 			this.chart_data.splice(0, 1, this.dataset);
 			this.chart_label.splice(0, 1, label_list);
+		},
+
+		Internal_Graph_setLineThickness(thickness) {
+			// get thickness: in float
+			thickness = parseFloat(thickness);
+			if (isNaN(thickness)) return;
+			if (thickness <= 0)   return;
+
+			// set thickness of line
+			// TODO: currently the thickness of every line is the same
+			for (let i = 0; i < this.dataset.length; ++i) {
+				this.dataset[i].borderWidth = thickness;
+			}
+
+			// update graph
+			this.Internal_updateGraph();
+		},
+
+		Internal_Graph_setLineFill(is_fill) {
+			// set is fill of line
+			// TODO: currently the config on every line is the same
+			for (let i = 0; i < this.dataset.length; ++i) {
+				this.dataset[i].fill = is_fill;
+			}
+
+			// update graph
+			this.Internal_updateGraph();
 		}
 	},
 
 	mounted() {
+		// value config list
+		this.value_config_list[0].callback = this.Internal_Graph_setLineThickness;
+		this.value_config_list[1].callback = this.Internal_Graph_setLineFill;
+
 		// update graph
 		this.Internal_updateGraph();
 

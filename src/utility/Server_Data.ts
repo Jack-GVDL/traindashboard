@@ -136,6 +136,7 @@ function request_GetLog_Data(id_: bigint) {
 
 
 // Global Function
+// TODO: rename: Server_Data_XXX
 // init
 export function Server_init() {
     if (is_initiated) return;
@@ -175,6 +176,17 @@ export function Server_update_IDNameList(is_request: boolean = true) {
 
 export function Server_update() {
     request_GetList_LogData_Changed();
+}
+
+
+// getter
+export function Server_getAddress() {
+    return server_address;
+}
+
+
+export function Server_setAddress(address: string) {
+    server_address = address;
 }
 
 

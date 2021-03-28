@@ -21,7 +21,8 @@
 <script>
 import {
 	ItemManager_addCallback,
-	ItemManager_setItem} from "@/utility/ItemManager";
+	ItemManager_setItem
+} from "@/utility/ItemManager";
 
 
 export default {

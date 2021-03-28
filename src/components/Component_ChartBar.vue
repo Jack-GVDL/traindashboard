@@ -109,7 +109,7 @@ export default {
 			// editor - title
 			ItemManager_setItem("Editor/Title/data", this.text_title);
 			ItemManager_clearCallback("Editor/Title/hook_update");
-			ItemManager_addCallback("Editor/Title/hook_update", this.Hook_updateTitle);
+			ItemManager_addCallback("Editor/Title/hook_update", this.Hook_updateTitle, false);
 		},
 
 		Hook_Observer_addData(data) {
