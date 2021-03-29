@@ -30,6 +30,7 @@
 					drag-ignore-from=".no-drag"
 			>
 				<v-card
+						:style="item.style_card"
 						style="height: 100%; background-color: #2e3442;"
 						class="background_panel"
 						outlined
@@ -62,10 +63,11 @@
 
 								<!-- close button -->
 								<v-btn
-										@click="Handler_close(item);"
-										dark
-										icon
-										small
+									v-show="is_show_delete"
+									@click="Handler_close(item);"
+									dark
+									icon
+									small
 								>
 									<v-icon
 										small
@@ -91,6 +93,7 @@
 								<!-- component -->
 								<div
 										:is="item.component"
+										v-bind:Interface_id="item.id"
 								>
 								</div>
 								<!-- component -->
@@ -122,8 +125,14 @@ import Topbar from "@/views/Topbar";
 import {
 	WidgetControl_addCallback_addWidget,
 	WidgetControl_addCallback_configWidget,
-	WidgetControl_addCallback_rmWidget, WidgetControl_configWidget, WidgetControl_rmWidget
+	WidgetControl_addCallback_initWidget,
+	WidgetControl_addCallback_rmWidget,
+	WidgetControl_configWidget,
+	WidgetControl_rmWidget
 } from "@/utility/WidgetControl";
+import {
+	ItemManager_addCallback, ItemManager_setItem
+} from "@/utility/ItemManager";
 
 
 export default {
@@ -157,7 +166,9 @@ export default {
 
 		// display
 		icon_minimize:  "mdi-minus",
-		icon_expand:    "mdi-plus"
+		icon_expand:    "mdi-plus",
+
+		is_show_delete: false,
 	}),
 
 	methods: {
@@ -173,28 +184,34 @@ export default {
 		},
 
 		// hook
-		Hook_WidgetControl_addWidget(data) {
+		Hook_WidgetControl_initWidget(data) {
 			if (data == null) return;
 
-			// check if id existed or not
-			// but normally id should not occur
-			// ...
-
-			// add widget
-			const data_dashboard = this.Internal_addWidget(data.id, data.component);
-
-			// check if data already contain data.custom.dashboard
+			// check data.custom.dashboard
 			if (data.custom["dashboard"] !== undefined) {
-				const index = this.layout.findIndex(element => element.id === data.id);
-				this.Internal_configWidget(index, data.custom["dashboard"]);
+
+				// still needed to call cause following is assuming not present / not up-to-date
+				// - layout_index
+				// - func_to_json
+				//
+				// but it is assumed that value type of rest of item are correct
+				const dashboard = this.Internal_addWidget(data.id, data.component);
+
+				data.custom.dashboard.id              = dashboard.id;
+				data.custom.dashboard["func_to_json"] = dashboard.func_to_json;
 				return;
 			}
 
-			// add custom
-			WidgetControl_configWidget(data.id, (custom) => {
-				custom["dashboard"] = data_dashboard;
-				return  custom;
-			});
+			// data.custom.dashboard does not exist
+			// add new one
+			const dashboard = this.Internal_addWidget(data.id, data.component);
+			data.custom["dashboard"] = dashboard;
+		},
+
+		Hook_WidgetControl_addWidget(data) {
+			if (data == null) return;
+			const dashboard = data.custom.dashboard;
+			this.layout.push(dashboard);
 		},
 
 		Hook_WidgetControl_rmWidget(data) {
@@ -216,13 +233,35 @@ export default {
 			if (index < 0) return;
 
 			// assumed: exist: data.custom.dashboard
-			this.Internal_configWidget(index, data.custom.dashboard);
+			this.Internal_configWidget(index, data.custom.dashboard, data.state.is_focused);
+		},
+
+		Hook_WidgetControl_convertToJson(item) {
+			return {
+				// data
+				id:         item.id,
+
+				is_static:  item.is_static,
+				x:          item.x,
+				y:          item.y,
+				w:          item.w,
+				h:          item.h,
+				i:          item.i,
+
+				component:  item.component,
+			}
+		},
+
+		// hook - internal
+		Hook_Internal_toggleDeleteButton() {
+			this.is_show_delete = !this.is_show_delete;
 		},
 
 		// internal
 		Internal_addWidget(id, component) {
 			// create
 			const widget = {
+				// data
 				id:         id,
 
 				is_static:  false,
@@ -232,12 +271,17 @@ export default {
 				h:          10,
 				i:          this.layout_index,
 
-				component: component,
+				component:  component,
+
+				style_card: "",
+
+				// function
+				func_to_json:   this.Hook_WidgetControl_convertToJson,
 			};
 			this.layout_index++;
 
 			// add
-			this.layout.push(widget);
+			// this.layout.push(widget);
 
 			return widget;
 		},
@@ -246,15 +290,20 @@ export default {
 			this.layout.splice(index, 1);
 		},
 
-		Internal_configWidget(index, data) {
+		Internal_configWidget(index, data, is_focused) {
 			// reset data
 			this.layout[index].is_static  = data.is_static;
-			this.layout[index].x          = data.x;
-			this.layout[index].y          = data.y;
-			this.layout[index].w          = data.w;
-			this.layout[index].h          = data.h;
+			// this.layout[index].x          = data.x;
+			// this.layout[index].y          = data.y;
+			// this.layout[index].w          = data.w;
+			// this.layout[index].h          = data.h;
 			this.layout[index].i          = data.i;
 			this.layout[index].component  = data.component;
+
+			this.layout[index].style_card = "";
+			if (is_focused) {
+				this.layout[index].style_card += "border: 1px solid gray;";
+			}
 
 			// update
 			this.layout.splice(index, 1, this.layout[index]);
@@ -262,10 +311,16 @@ export default {
 	},
 
 	mounted() {
+		// push item
+		ItemManager_addCallback(
+			"Dashboard/toggle_delete_button",
+			this.Hook_Internal_toggleDeleteButton, false);
+
 		// add callback
 		WidgetControl_addCallback_addWidget(this.Hook_WidgetControl_addWidget);
 		WidgetControl_addCallback_rmWidget(this.Hook_WidgetControl_rmWidget);
 		WidgetControl_addCallback_configWidget(this.Hook_WidgetControl_configWidget);
+		WidgetControl_addCallback_initWidget(this.Hook_WidgetControl_initWidget);
 	},
 
 	watch: {

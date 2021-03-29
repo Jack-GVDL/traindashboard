@@ -53,7 +53,6 @@
 
 <script>
 import Chart_Bar from "@/components/Chart_Bar";
-
 import {
 	ItemManager_addCallback,
 	ItemManager_clearCallback,
@@ -66,6 +65,9 @@ import {
 	Observer_LogData_addCallback_Rm,
 	Observer_LogData_create
 } from "@/utility/Observer_LogData";
+import {
+	WidgetControl_configWidget
+} from "@/utility/WidgetControl";
 
 
 export default {
@@ -74,6 +76,10 @@ export default {
 	components: {
 		Chart_Bar
 	},
+
+	props: [
+		"Interface_id",
+	],
 
 	data: () => ({
 		// observer
@@ -86,7 +92,7 @@ export default {
 		dataset: [],
 
 		// title, editor
-		text_title: "Bar Chart"
+		text_title: ""
 	}),
 
 	methods: {
@@ -112,6 +118,7 @@ export default {
 			ItemManager_addCallback("Editor/Title/hook_update", this.Hook_updateTitle, false);
 		},
 
+		// hook - observer (data)
 		Hook_Observer_addData(data) {
 			if (data == null) return;
 
@@ -161,9 +168,13 @@ export default {
 			this.Internal_updateGraph();
 		},
 
+		// hook - title, graph config
 		Hook_updateTitle(title) {
 			if (title == null) return;
 			this.text_title = title;
+
+			// set title to widget
+			WidgetControl_configWidget(this.Interface_id, (widget) => widget.name = title);
 		},
 
 		Internal_updateGraph() {

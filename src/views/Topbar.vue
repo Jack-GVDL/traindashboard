@@ -5,6 +5,9 @@
 
 		<!-- search field -->
 		<v-text-field
+			v-model="text_search"
+			@input="Handler_searchWidget()"
+			@blur="Handler_searchEnd()"
 			class="white--text font-weight-light"
 			dark
 		>
@@ -25,7 +28,7 @@
 
 		<v-spacer></v-spacer>
 
-		<!-- save button -->
+		<!-- message -->
 		<v-slide-x-reverse-transition>
 			<div
 				:class="color_save_message"
@@ -35,7 +38,9 @@
 				{{ text_save_message }}
 			</div>
 		</v-slide-x-reverse-transition>
+		<!-- message -->
 
+		<!-- save, load button -->
 		<v-btn
 			@click="Handler_save()"
 			icon
@@ -43,10 +48,46 @@
 			<v-icon
 				color="white"
 			>
-				mdi-content-save
+				mdi-progress-upload
 			</v-icon>
 		</v-btn>
-		<!-- save button -->
+
+		<v-btn
+			@click="Handler_load()"
+			icon
+		>
+			<v-icon
+				color="white"
+			>
+				mdi-progress-download
+			</v-icon>
+		</v-btn>
+		<!-- save, load button -->
+
+		<!-- toggle widget delete button -->
+		<v-btn
+			@click="Handler_delete()"
+			icon
+		>
+			<v-icon
+				color="white"
+			>
+				mdi-delete
+			</v-icon>
+		</v-btn>
+		<!-- toggle widget delete button -->
+
+		<!-- more option -->
+		<v-btn
+			icon
+		>
+			<v-icon
+				color="white"
+			>
+				mdi-dots-vertical
+			</v-icon>
+		</v-btn>
+		<!-- more option -->
 
 	</v-toolbar>
 </template>
@@ -54,18 +95,25 @@
 
 <script>
 import {
-	WidgetControl_getWidgetList
+	WidgetControl_configWidget,
+	WidgetControl_getWidgetList, WidgetControl_updateAll
 } from "@/utility/WidgetControl";
 import {
 	Server_Layout_setLayout,
 	Server_Layout_Status_SetLayout_addCallback
 } from "@/utility/Server_Layout";
+import {
+	ItemManager_setItem
+} from "@/utility/ItemManager";
 
 
 export default {
 	name: "Topbar",
 
 	data:() => ({
+		// search
+		text_search: "",
+
 		// save button, save message
 		is_show_save_message: false,
 		text_save_message: "",
@@ -74,12 +122,93 @@ export default {
 
 	methods: {
 		// handler
+		Handler_delete() {
+			ItemManager_setItem("Dashboard/toggle_delete_button", null);
+		},
+
 		Handler_save() {
 			// get widget list
 			const widget_list = WidgetControl_getWidgetList();
 
 			// save to server
 			Server_Layout_setLayout(widget_list);
+		},
+
+		Handler_load() {
+			// load from server
+			// Server_Layout_updateLayout();
+		},
+
+		Handler_searchWidget() {
+			// get widget list
+			// assumed that widget list is sorted based on id
+			const widget_list = WidgetControl_getWidgetList();
+
+			// filter
+			// if text field is empty
+			// then no widget is being selected
+			let target_list = [];
+			if (this.text_search.length !== 0) {
+				target_list = widget_list.filter(
+					element => element.name.includes(this.text_search)
+				);
+			}
+
+			// config widget
+			const size_target   = target_list.length;
+			let   index_target  = 0;
+			let   is_ended      = index_target === size_target;
+
+			for (let widget of widget_list) {
+				if (is_ended) {
+					widget.state.is_focused = false;
+					continue;
+				}
+
+				if (widget.id < target_list[index_target].id) {
+					widget.state.is_focused = false;
+					continue;
+				}
+
+				if (widget.id === target_list[index_target].id) {
+					widget.state.is_focused = true;
+					index_target++;
+					continue;
+				}
+
+				// if (widget.id > target_list[index_target].id)
+				widget.state.is_focused = false;
+
+				index_target++;
+				while (index_target < size_target) {
+					if (widget.id > target_list[index_target].id) {
+						index_target++;
+						continue;
+					}
+					break;
+				}
+
+				if (index_target === size_target) is_ended = true;
+			}
+
+			// update all
+			WidgetControl_updateAll();
+		},
+
+		Handler_searchEnd() {
+			// reset text field
+			this.text_search = "";
+
+			// get widget list
+			const widget_list = WidgetControl_getWidgetList();
+
+			// reset state of each widget
+			for (let widget of widget_list) {
+				widget.state.is_focused = false;
+			}
+
+			// update all
+			WidgetControl_updateAll();
 		},
 
 		// hook

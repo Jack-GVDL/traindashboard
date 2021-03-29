@@ -1,15 +1,11 @@
 // Local Data
-import setPrototypeOf = Reflect.setPrototypeOf;
-
-let path_background_image = "";
 const item_callback = new Map();
 const item_cache    = new Map();
 const item_flag     = new Map();
 const delay_update: string[]  = [];
 
 let is_updating = false;
-
-
+let lock_depth = 0;
 
 const hook_update_pre_list: any[]  = [];
 
@@ -54,7 +50,10 @@ function _rmItem_(item_name: string) {
 }
 
 
-function _setItem_(item_name: string, value: any, is_create: boolean = false, is_invoke: boolean = true) {
+function _setItem_(
+    item_name: string, value: any,
+    is_create: boolean = false, is_invoke: boolean = true, is_immediate: boolean = false) {
+
   // compute item_name hash
   const hash = _getHash_(item_name);
 
@@ -70,7 +69,7 @@ function _setItem_(item_name: string, value: any, is_create: boolean = false, is
   item_cache.set(hash, value)
 
   // callback
-  if (is_invoke) _update_(null, hash, true);
+  if (is_invoke) _update_(null, hash, true, is_immediate);
   return true;
 }
 
@@ -178,7 +177,7 @@ function _updateDelayed_() {
 }
 
 
-function _update_(item_name: any, hash: any = null, is_checked: boolean = false) {
+function _update_(item_name: any, hash: any = null, is_checked: boolean = false, is_immediate: boolean = false) {
   // compute item_name hash
   if (hash == null) hash = _getHash_(item_name);
 
@@ -188,11 +187,13 @@ function _update_(item_name: any, hash: any = null, is_checked: boolean = false)
   if (item_flag.get(hash) == 1)             return false;
 
   // global update lock
-  if (is_updating) {
+  // but there is a situation that can bypass the lock: immediate update
+  if (is_updating && !is_immediate) {
     delay_update.push(hash);
     return;
   }
   is_updating = true;
+  lock_depth++;
 
   // ----- item -----
   // get item
@@ -220,9 +221,13 @@ function _update_(item_name: any, hash: any = null, is_checked: boolean = false)
   // unlock the item
   item_flag.set(hash, 0);
 
-  // unlock global update flag and update pending update
-  is_updating = false;
-  _updateDelayed_();
+  // unlock global update flag if lock_depth === 0
+  // if unlocked, update pending update
+  lock_depth--;
+  if (lock_depth === 0) {
+    is_updating = false;
+    _updateDelayed_();
+  }
 
   return true;
 }
@@ -234,7 +239,10 @@ function _getKeyList_() {
 
 
 // Global Function
-export function ItemManager_addCallback(item_name: string, callback: any, is_invoke: boolean = true, data: any = null) {
+export function ItemManager_addCallback(
+    item_name: string, callback: any,
+    is_invoke: boolean = true, data: any = null) {
+
   return _addCallback_(item_name, callback, data, true, is_invoke);
 }
 
@@ -249,13 +257,16 @@ export function ItemManager_clearCallback(item_name: string) {
 }
 
 
-export function ItemManager_setItem(item_name: string, value: any, is_invoke: boolean = true) {
-  return _setItem_(item_name, value, true, is_invoke);
+export function ItemManager_setItem(
+    item_name: string, value: any,
+    is_invoke: boolean = true, is_immediate: boolean = false) {
+
+  return _setItem_(item_name, value, true, is_invoke, is_immediate);
 }
 
 
-export function ItemManager_updateItem(item_name: string) {
-  return _update_(item_name);
+export function ItemManager_updateItem(item_name: string, is_immediate: boolean = false) {
+  return _update_(item_name, null, false, is_immediate);
 }
 
 

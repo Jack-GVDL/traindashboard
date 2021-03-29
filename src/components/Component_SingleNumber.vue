@@ -66,13 +66,15 @@ import {
 	ItemManager_clearCallback,
 	ItemManager_setItem
 } from "@/utility/ItemManager";
-
 import {
 	Observer_LogData_addCallback_Add,
 	Observer_LogData_addCallback_Config,
 	Observer_LogData_addCallback_Rm,
 	Observer_LogData_create, Observer_LogData_setSizeMax
 } from "@/utility/Observer_LogData"
+import {
+	WidgetControl_configWidget
+} from "@/utility/WidgetControl";
 
 
 export default {
@@ -80,6 +82,10 @@ export default {
 
 	components: {
 	},
+
+	props: [
+		"Interface_id",
+	],
 
 	data: () => ({
 		// observer
@@ -171,6 +177,9 @@ export default {
 			if (data == null) return;
 			this.Internal_setData(data);
 			this.Internal_updateData();
+
+			// set title to widget
+			WidgetControl_configWidget(this.Interface_id, (widget) => widget.name = title);
 		},
 
 		// hook - editor

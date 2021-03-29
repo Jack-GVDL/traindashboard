@@ -48,10 +48,22 @@
 
 
 <script>
-import {ItemManager_addCallback, ItemManager_clearCallback, ItemManager_setItem} from "@/utility/ItemManager";
+import {
+	ItemManager_addCallback,
+	ItemManager_clearCallback,
+	ItemManager_setItem
+} from "@/utility/ItemManager";
+import {
+	WidgetControl_configWidget
+} from "@/utility/WidgetControl";
+
 
 export default {
 	name: "Component_TextField",
+
+	props: [
+		"Interface_id",
+	],
 
 	data:() => ({
 		// title, editor
@@ -106,6 +118,9 @@ export default {
 		Hook_updateTitle(title) {
 			if (title == null) return;
 			this.text_title = title;
+
+			// set title to widget
+			WidgetControl_configWidget(this.Interface_id, (widget) => widget.name = title);
 		},
 
 		Hook_updateValue(data) {
