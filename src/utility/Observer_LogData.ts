@@ -116,6 +116,7 @@ class Observer_LogData {
 // const observer_table        = new Map();
 // const log_data_hook_table   = new Map();
 
+let is_initiated: boolean = false;
 let observer_index: bigint = 1n;
 
 const path_observer_log_data            = "Observer/Data/";
@@ -315,6 +316,12 @@ function _setSizeMax_(id_observer: bigint, size_max: bigint) {
 
 
 // Export Function
+export function Observer_LogData_init() {
+    if (is_initiated) return;
+    is_initiated = true;
+}
+
+
 export function Observer_LogData_create() {
     return _create_();
 }

@@ -20,6 +20,9 @@ import {
 import {
 	WidgetControl_init
 } from "@/utility/WidgetControl";
+import {
+	Observer_LogData_init
+} from "@/utility/Observer_LogData";
 
 
 export default Vue.extend({
@@ -29,10 +32,11 @@ export default Vue.extend({
   	Main
 	},
 
-	mounted() {
-  	Server_init();
-  	Server_update();
-  	WidgetControl_init();
+	mounted: function () {
+		Server_init();
+		Server_update();
+		Observer_LogData_init();
+		WidgetControl_init();
 	}
 });
 </script>

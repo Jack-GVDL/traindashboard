@@ -123,11 +123,11 @@ import Component_TextField from "@/components/Component_TextField";
 import Component_ItemList from "@/components/Component_ItemList";
 import Topbar from "@/views/Topbar";
 import {
-	WidgetControl_addCallback_addWidget,
-	WidgetControl_addCallback_configWidget,
-	WidgetControl_addCallback_initWidget,
-	WidgetControl_addCallback_rmWidget,
-	WidgetControl_addCallback_updateWidget,
+	WidgetControl_addCallback_AddWidget,
+	WidgetControl_addCallback_ConfigWidget,
+	WidgetControl_addCallback_InitWidget,
+	WidgetControl_addCallback_RmWidget,
+	WidgetControl_addCallback_RefreshWidget,
 	WidgetControl_configWidget,
 	WidgetControl_rmWidget
 } from "@/utility/WidgetControl";
@@ -316,11 +316,11 @@ export default {
 			this.Hook_Internal_toggleDeleteButton, false);
 
 		// add callback
-		WidgetControl_addCallback_addWidget(this.Hook_WidgetControl_addWidget);
-		WidgetControl_addCallback_rmWidget(this.Hook_WidgetControl_rmWidget);
-		WidgetControl_addCallback_configWidget(this.Hook_WidgetControl_configWidget);
-		WidgetControl_addCallback_initWidget(this.Hook_WidgetControl_initWidget);
-		WidgetControl_addCallback_updateWidget(this.Hook_WidgetControl_updateWidget);
+		WidgetControl_addCallback_AddWidget(this.Hook_WidgetControl_addWidget);
+		WidgetControl_addCallback_RmWidget(this.Hook_WidgetControl_rmWidget);
+		WidgetControl_addCallback_ConfigWidget(this.Hook_WidgetControl_configWidget);
+		WidgetControl_addCallback_InitWidget(this.Hook_WidgetControl_initWidget);
+		WidgetControl_addCallback_RefreshWidget(this.Hook_WidgetControl_updateWidget);
 	},
 
 	watch: {

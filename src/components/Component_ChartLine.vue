@@ -61,7 +61,7 @@ import {
 	Observer_LogData_create,
 	Observer_LogData_addCallback_Add,
 	Observer_LogData_addCallback_Rm,
-	Observer_LogData_addCallback_Config
+	Observer_LogData_addCallback_Config, Observer_LogData_bindData
 } from "@/utility/Observer_LogData";
 import {
 	WidgetControl_addCallback_ConfigWidget_Single,
@@ -123,6 +123,12 @@ export default {
 				custom:     null,
 			},
 		],
+
+		// layout
+		layout_data:            [],
+		layout_line_thickness:  1,
+		layout_line_fill:       false,
+		layout_point_radius:    1,
 	}),
 
 	methods: {
@@ -161,6 +167,7 @@ export default {
 		Hook_Observer_addData(data) {
 			if (data == null) return;
 
+			// ----- graph -----
 			// get color
 			const color = data.custom.rgba_color;
 
@@ -174,29 +181,44 @@ export default {
 				borderWidth:      1,
 			});
 			this.Internal_updateGraph();
+
+			// ----- log widget -----
+			this.layout_data.push({
+				id:     data.log_data.id,
+				// color:  data.custom.rgba_color,
+			});
 		},
 
 		Hook_Observer_rmData(data) {
 			if (data == null) return;
 
+			// ----- graph -----
 			// get index
-			const index = this.dataset.findIndex(element => element.id === data.log_data.id);
-			if (index < 0) return;
+			const index_data = this.dataset.findIndex(element => element.id === data.log_data.id);
+			if (index_data < 0) return;
 
 			// remove target
-			this.dataset.splice(index, 1);
+			this.dataset.splice(index_data, 1);
 			this.Internal_updateGraph();
+
+			// ----- log widget -----
+			const index_widget = this.layout_data.findIndex(element => element.id === data.log_data.id);
+			if (index_widget < 0) return;
+
+			// remove target
+			this.layout_data.splice(index_widget, 1);
 		},
 
 		Hook_Observer_configData(data) {
 			if (data == null) return;
 
+			// ----- graph -----
 			// get index
-			const index = this.dataset.findIndex(element => element.id === data.log_data.id);
-			if (index < 0) return;
+			const index_data = this.dataset.findIndex(element => element.id === data.log_data.id);
+			if (index_data < 0) return;
 
 			// update target
-			const target = this.dataset[index];
+			const target = this.dataset[index_data];
 			const color = data.custom.rgba_color;
 
 			target.data 						= data.log_data.data;
@@ -206,6 +228,13 @@ export default {
 
 			// this.dataset.splice(index, 1, target);
 			this.Internal_updateGraph();
+
+			// ----- log widget -----
+			const index_widget = this.layout_data.findIndex(element => element.id === data.log_data.id);
+			if (index_widget < 0) return;
+
+			// config target
+			// this.data_list[index_widget].color = data.log_data.color;
 		},
 
 		// hook - widget control
@@ -217,7 +246,23 @@ export default {
 			if (widget.custom["component_line"] !== undefined) {
 				const custom = widget.custom["component_line"];
 
+				// title
 				this.text_title = custom.title;
+
+				// log data
+				const data_list = custom.data_list;
+				for (let data of data_list) {
+					const index = this.layout_data.findIndex(element => element.id === data.id);
+					if (index >= 0) continue;
+
+					Observer_LogData_bindData(this.id_observer, data.id);
+				}
+
+				// graph option
+				// this.Internal_Graph_setLineThickness(custom.line_thickness);
+				// this.Internal_Graph_setLineFill(custom.line_fill);
+				// this.Internal_Graph_setPointRadius(custom.point_radius);
+
 				return;
 			}
 
@@ -227,11 +272,15 @@ export default {
 			};
 		},
 
-		Hook_WidgetControl_updateWidget(widget) {
+		Hook_WidgetControl_refreshWidget(widget) {
 			if (widget == null) return;
 
 			widget.custom["component_line"] = {
-				title:  this.text_title,
+				title:            this.text_title,
+				data_list:        this.layout_data,
+				line_thickness:   this.layout_line_thickness,
+				line_fill:        this.layout_line_fill,
+				point_radius:     this.layout_point_radius,
 			};
 		},
 
@@ -295,6 +344,9 @@ export default {
 				this.dataset[i].borderWidth = thickness;
 			}
 
+			// layout
+			this.layout_line_thickness = thickness;
+
 			// update graph
 			this.Internal_updateGraph();
 		},
@@ -305,6 +357,9 @@ export default {
 			for (let i = 0; i < this.dataset.length; ++i) {
 				this.dataset[i].fill = is_fill;
 			}
+
+			// layout
+			this.layout_line_fill = is_fill;
 
 			// update graph
 			this.Internal_updateGraph();
@@ -318,6 +373,9 @@ export default {
 
 			// set radius of point
 			this.chart_option[0].elements.point.radius = radius;
+
+			// layout
+			this.layout_point_radius = radius;
 
 			// update graph
 			this.Internal_updateGraph();
@@ -394,7 +452,7 @@ export default {
 		Observer_LogData_addCallback_Config(		this.id_observer, this.Hook_Observer_configData);
 
 		// widget control
-		WidgetControl_addCallback_RefreshWidget_Single(this.Interface_id, this.Hook_WidgetControl_updateWidget);
+		WidgetControl_addCallback_RefreshWidget_Single(this.Interface_id, this.Hook_WidgetControl_refreshWidget);
 		WidgetControl_addCallback_ConfigWidget_Single(this.Interface_id, this.Hook_WidgetControl_configWidget);
 		WidgetControl_updateWidget(this.Interface_id, false);
 	},

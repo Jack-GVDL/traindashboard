@@ -32,7 +32,6 @@ const filename_add_widget		= "add";
 const filename_rm_widget		= "rm";
 const filename_config_widget	= "config";
 const filename_init_widget		= "init";
-const filename_update_widget	= "update";
 
 const filename_update			= "update";
 const filename_refresh			= "refresh";
@@ -188,12 +187,12 @@ export function WidgetControl_pull() {
 export function WidgetControl_push() {
 	for (let widget of widget_list) {
 		ItemManager_setItem(
-			path_widget_control + filename_update_widget, widget,
+			path_widget_control + filename_refresh, widget,
 			true, true
 		);
 
 		ItemManager_setItem(
-			path_widget_control + path_widget_data + widget.id + "/" + filename_update_widget, widget,
+			path_widget_control + path_widget_data + widget.id + "/" + filename_refresh, widget,
 			true, true
 		);
 		Server_Layout_configWidget(widget);
@@ -213,28 +212,28 @@ export function WidgetControl_push() {
 ///
 // add widget
 // widget is ready and can be used
-export function WidgetControl_addCallback_initWidget(callback: any) {
+export function WidgetControl_addCallback_InitWidget(callback: any) {
 	return ItemManager_addCallback(path_widget_control + filename_init_widget, callback, false);
 }
 
 
-export function WidgetControl_addCallback_addWidget(callback: any) {
+export function WidgetControl_addCallback_AddWidget(callback: any) {
 	return ItemManager_addCallback(path_widget_control + filename_add_widget, callback, false);
 }
 
 
-export function WidgetControl_addCallback_rmWidget(callback: any) {
+export function WidgetControl_addCallback_RmWidget(callback: any) {
 	return ItemManager_addCallback(path_widget_control + filename_rm_widget, callback, false);
 }
 
 
-export function WidgetControl_addCallback_configWidget(callback: any) {
+export function WidgetControl_addCallback_ConfigWidget(callback: any) {
 	return ItemManager_addCallback(path_widget_control + filename_config_widget, callback, false);
 }
 
 
-export function WidgetControl_addCallback_updateWidget(callback: any) {
-	return ItemManager_addCallback(path_widget_control + filename_update_widget, callback, false);
+export function WidgetControl_addCallback_RefreshWidget(callback: any) {
+	return ItemManager_addCallback(path_widget_control + filename_refresh, callback, false);
 }
 
 
@@ -253,28 +252,28 @@ export function WidgetControl_addCallback_RefreshWidget_Single(id_widget: bigint
 
 
 // rm callback
-export function WidgetControl_rmCallback_initWidget(callback: any) {
+export function WidgetControl_rmCallback_InitWidget(callback: any) {
 	return ItemManager_rmCallback(path_widget_control + filename_init_widget, callback);
 }
 
 
-export function WidgetControl_rmCallback_addWidget(callback: any) {
+export function WidgetControl_rmCallback_AddWidget(callback: any) {
 	return ItemManager_rmCallback(path_widget_control + filename_add_widget, callback);
 }
 
 
-export function WidgetControl_rmCallback_rmWidget(callback: any) {
+export function WidgetControl_rmCallback_RmWidget(callback: any) {
 	return ItemManager_rmCallback(path_widget_control + filename_rm_widget, callback)
 }
 
 
-export function WidgetControl_rmCallback_configWidget(callback: any) {
+export function WidgetControl_rmCallback_ConfigWidget(callback: any) {
 	return ItemManager_rmCallback(path_widget_control + filename_config_widget, callback);
 }
 
 
-export function WidgetControl_rmCallback_updateWidget(callback: any) {
-	return ItemManager_rmCallback(path_widget_control + filename_update_widget, callback);
+export function WidgetControl_rmCallback_RefreshWidget(callback: any) {
+	return ItemManager_rmCallback(path_widget_control + filename_refresh, callback);
 }
 
 

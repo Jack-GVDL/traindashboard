@@ -70,9 +70,9 @@
 			icon
 		>
 			<v-icon
-				color="white"
+				:color="is_delete_enable ? 'red' : 'white'"
 			>
-				mdi-delete
+				{{ is_delete_enable ? "mdi-delete" : "mdi-delete-outline" }}
 			</v-icon>
 		</v-btn>
 		<!-- toggle widget delete button -->
@@ -119,11 +119,15 @@ export default {
 		is_show_save_message: false,
 		text_save_message: "",
 		color_save_message: "white--text",
+
+		// delete button
+		is_delete_enable: false,
 	}),
 
 	methods: {
 		// handler
 		Handler_delete() {
+			this.is_delete_enable = !this.is_delete_enable;
 			ItemManager_setItem("Dashboard/toggle_delete_button", null);
 		},
 
