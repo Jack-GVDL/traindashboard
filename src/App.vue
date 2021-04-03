@@ -17,6 +17,9 @@ import {
 import {
 	ItemManager_addCallback_UpdatePre
 } from "@/utility/ItemManager";
+import {
+	WidgetControl_init
+} from "@/utility/WidgetControl";
 
 
 export default Vue.extend({
@@ -29,6 +32,7 @@ export default Vue.extend({
 	mounted() {
   	Server_init();
   	Server_update();
+  	WidgetControl_init();
 	}
 });
 </script>

@@ -42,6 +42,7 @@
 				style="height: 90%;"
 				v-bind:Interface_data="chart_data"
 				v-bind:Interface_label="chart_label"
+				v-bind:Interface_option="chart_option"
 		/>
 		<!-- chart -->
 
@@ -52,7 +53,8 @@
 <script>
 import Chart_Line from "@/components/Chart_Line";
 import {
-	ItemManager_addCallback, ItemManager_clearCallback,
+	ItemManager_addCallback,
+	ItemManager_clearCallback,
 	ItemManager_setItem
 } from "@/utility/ItemManager";
 import {
@@ -62,7 +64,10 @@ import {
 	Observer_LogData_addCallback_Config
 } from "@/utility/Observer_LogData";
 import {
-	WidgetControl_configWidget
+	WidgetControl_addCallback_ConfigWidget_Single,
+	WidgetControl_addCallback_RefreshWidget_Single,
+	WidgetControl_configWidget,
+	WidgetControl_updateWidget
 } from "@/utility/WidgetControl";
 
 
@@ -84,6 +89,7 @@ export default {
 		// chart interface
 		chart_data: 	[[]],
 		chart_label: 	[[]],
+		chart_option: [{}],
 
 		dataset: [],
 
@@ -107,7 +113,15 @@ export default {
 				value:      false,
 				callback:   null,
 				custom:     null,
-			}
+			},
+			{
+				id:         2,
+				name:       "Point radius",
+				component:  "Config_ValueInt",
+				value:      0,
+				callback:   null,
+				custom:     null,
+			},
 		],
 	}),
 
@@ -194,13 +208,43 @@ export default {
 			this.Internal_updateGraph();
 		},
 
+		// hook - widget control
+		// assumed that the widget is created before this component is created
+		Hook_WidgetControl_configWidget(widget) {
+			if (widget == null) return;
+
+			// check data.custom.component_line
+			if (widget.custom["component_line"] !== undefined) {
+				const custom = widget.custom["component_line"];
+
+				this.text_title = custom.title;
+				return;
+			}
+
+			// add new one
+			widget.custom["component_line"] = {
+				title: this.text_title,
+			};
+		},
+
+		Hook_WidgetControl_updateWidget(widget) {
+			if (widget == null) return;
+
+			widget.custom["component_line"] = {
+				title:  this.text_title,
+			};
+		},
+
 		// hook - title, graph config
 		Hook_updateTitle(title) {
 			if (title == null) return;
 			this.text_title = title;
 
 			// set title to widget
-			WidgetControl_configWidget(this.Interface_id, (widget) => widget.name = title);
+			WidgetControl_configWidget(this.Interface_id, (widget) => {
+				widget.name                         = title;
+				widget.custom.component_line.title  = title;
+			});
 		},
 
 		Hook_updateValue(data) {
@@ -264,6 +308,19 @@ export default {
 
 			// update graph
 			this.Internal_updateGraph();
+		},
+
+		Internal_Graph_setPointRadius(radius) {
+			// get radius: in float
+			radius = parseFloat(radius)
+			if (isNaN(radius))  return;
+			if (radius < 0)     return;
+
+			// set radius of point
+			this.chart_option[0].elements.point.radius = radius;
+
+			// update graph
+			this.Internal_updateGraph();
 		}
 	},
 
@@ -271,8 +328,63 @@ export default {
 		// value config list
 		this.value_config_list[0].callback = this.Internal_Graph_setLineThickness;
 		this.value_config_list[1].callback = this.Internal_Graph_setLineFill;
+		this.value_config_list[2].callback = this.Internal_Graph_setPointRadius;
 
 		// update graph
+		const option = {
+			scales: {
+				yAxes: [{
+					display: true,
+					ticks: {
+						fontColor: "#C6C8CA",
+						fontSize: 10,
+						min: 0,
+						padding: 5
+					},
+					gridLines: {
+						zeroLineColor: "white"
+					},
+					scaleLabel: {
+						display: true
+					}
+				}],
+				xAxes: [{
+					display: true,
+					ticks: {
+						fontColor: "#C6C8CA",
+						fontSize: 10,
+						padding: 5
+					},
+					gridLines: {
+						color: "transparent",
+						zeroLineColor: "white"
+					},
+					scaleLabel: {
+						display: true
+					}
+				}]
+			},
+			elements: {
+				point:{
+					radius: 0
+				}
+			},
+			legend: {
+				labels: {
+					fontColor: "#C6C8CA",
+				},
+				display: true
+			},
+			animation: {
+				duration: 1
+			},
+			tooltips: {
+				enabled: true
+			},
+			maintainAspectRatio: false,
+			responsive: true
+		};
+		this.chart_option.splice(0, 1, option);
 		this.Internal_updateGraph();
 
 		// observer
@@ -280,10 +392,16 @@ export default {
 		Observer_LogData_addCallback_Add(				this.id_observer, this.Hook_Observer_addData);
 		Observer_LogData_addCallback_Rm(				this.id_observer, this.Hook_Observer_rmData);
 		Observer_LogData_addCallback_Config(		this.id_observer, this.Hook_Observer_configData);
+
+		// widget control
+		WidgetControl_addCallback_RefreshWidget_Single(this.Interface_id, this.Hook_WidgetControl_updateWidget);
+		WidgetControl_addCallback_ConfigWidget_Single(this.Interface_id, this.Hook_WidgetControl_configWidget);
+		WidgetControl_updateWidget(this.Interface_id, false);
 	},
 
 	watch: {
-
+		Interface_id: function (new_val, old_val) {
+		}
 	}
 }
 </script>

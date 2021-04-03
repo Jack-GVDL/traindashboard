@@ -1,101 +1,172 @@
 // Import
 import {
-	ItemManager_addCallback, ItemManager_rmCallback,
-	ItemManager_setItem, ItemManager_updateItem
+	ItemManager_addCallback,
+	ItemManager_getCallback,
+	ItemManager_getKeyList,
+	ItemManager_getState,
+	ItemManager_rmCallback,
+	ItemManager_setItem,
+	ItemManager_updateItem
 } from "@/utility/ItemManager";
+import {
+	Server_Layout_addCallback_AddWidget,
+	Server_Layout_addCallback_ConfigWidget,
+	Server_Layout_addCallback_RmWidget, Server_Layout_addCallback_WidgetIDList,
+	Server_Layout_addWidget,
+	Server_Layout_configWidget,
+	Server_Layout_rmWidget,
+	Server_Layout_updateWidgetIDList,
+	Server_Layout_updateWidget
+} from "@/utility/Server_Layout";
 
 
 // Local Data
-let widget_index: 	number 	= 1;
+let is_initiated = false;
+
 const widget_list:	any[] 	= [];
 
 const path_widget_control		= "Widget/";
+const path_widget_data			= "Data/";
+
 const filename_add_widget		= "add";
 const filename_rm_widget		= "rm";
 const filename_config_widget	= "config";
 const filename_init_widget		= "init";
+const filename_update_widget	= "update";
+
+const filename_update			= "update";
+const filename_refresh			= "refresh";
 
 
 // Local Function
-// ...
+function _getPath_Widget_(id_widget: bigint) {
+	return path_widget_control + path_widget_data + id_widget + "/";
+}
 
 
-// Global Function
-export function WidgetControl_addWidget(component: string) {
-	// get index
-	const id = widget_index;
-	widget_index++;
-
-	// create object
-	const widget = {
-		id: 		id,
-		component:	component,
-		name:		"",
-		state:		{
-			is_focused: false,
-		},
-		custom:		{},
-	};
+function _Hook_addWidget_(data: any) {
+	if (data == null) return;
 
 	// call init hook
 	// it is the immediate action that require immediate return from the callback
 	//
 	// after this operation
-	// it is assumed that widget is ready
-	ItemManager_setItem(path_widget_control + filename_init_widget, widget, true, true);
+	// it is assumed that widget is ready and add_widget event can be called
+
+	// init event
+	ItemManager_setItem(
+		path_widget_control + filename_init_widget, data,
+		true, true
+	);
 
 	// add to list
-	widget_list.push(widget);
+	widget_list.push(data);
 
-	// update
-	ItemManager_setItem(path_widget_control + filename_add_widget, widget, true);
-
-	// RET
-	return id;
+	// add event
+	ItemManager_setItem(path_widget_control + filename_add_widget, data);
+	ItemManager_setItem(_getPath_Widget_(data.id) + filename_update, data);
 }
 
 
-export function WidgetControl_rmWidget(id_widget: number) {
-	// get index
-	const index = widget_list.findIndex(element => element.id === id_widget);
-	if (index < 0) return false;
+function _Hook_rmWidget_(id: any) {
+	if (id == null) return;
 
-	// remove from list
+	// remove widget from widget_list
+	const index = widget_list.findIndex(element => element.id === id);
+	if (index < 0) return;
+
 	const widget = widget_list[index];
 	widget_list.splice(index, 1);
 
-	// update
+	// event
 	ItemManager_setItem(path_widget_control + filename_rm_widget, widget, true);
+}
 
-	// RET
-	return true;
+
+function _Hook_configWidget_(widget: any) {
+	if (widget == null) return;
+
+	// check if widget existed in widget_list
+	// if not existed, treat this widget as new widget
+	const index = widget_list.findIndex(element => element.id === widget.id);
+	if (index < 0) {
+		_Hook_addWidget_(widget);
+		return;
+	}
+
+	// event
+	ItemManager_setItem(
+		path_widget_control + filename_config_widget, widget,
+		true
+	);
+
+	ItemManager_setItem(
+		_getPath_Widget_(widget.id) + filename_update, widget,
+		true
+	);
+}
+
+
+function _Hook_updateWidgetIDList_(id_list: any) {
+	for (let id of id_list) Server_Layout_updateWidget(id);
+}
+
+
+// Global Function
+// init
+export function WidgetControl_init() {
+	if (is_initiated) return;
+	is_initiated = true;
+
+	Server_Layout_addCallback_AddWidget(_Hook_addWidget_);
+	Server_Layout_addCallback_RmWidget(_Hook_rmWidget_);
+	Server_Layout_addCallback_ConfigWidget(_Hook_configWidget_);
+	Server_Layout_addCallback_WidgetIDList(_Hook_updateWidgetIDList_);
+}
+
+
+// operation
+export function WidgetControl_addWidget(component: string) {
+	// create widget
+	Server_Layout_addWidget(component);
+}
+
+
+export function WidgetControl_rmWidget(id_widget: bigint) {
+	Server_Layout_rmWidget(id_widget);
 }
 
 
 export function WidgetControl_configWidget(id_widget: number, func: any) {
-	// get index
+	// get widget
 	const index = widget_list.findIndex(element => element.id === id_widget);
-	if (index < 0) return false;
+	if (index < 0) return;
 
-	// get custom from widget
 	const widget = widget_list[index];
 
 	// config
 	func(widget);
 
 	// update
-	ItemManager_setItem(
-		path_widget_control + filename_config_widget,
-		widget, true
-	);
-
-	// RET
-	return true;
+	Server_Layout_configWidget(widget);
 }
 
 
-export function WidgetControl_updateAll() {
-	// update all widget
+export function WidgetControl_updateWidget(id_widget: bigint, is_request: boolean = false) {
+	if (is_request) Server_Layout_updateWidget(id_widget);
+	else			ItemManager_updateItem(_getPath_Widget_(id_widget) + filename_update);
+}
+
+
+export function WidgetControl_updateAll(is_request: boolean = false) {
+	// need to request from server
+	if (is_request) {
+
+		for (let widget of widget_list) Server_Layout_updateWidget(widget.id);
+		return;
+	}
+
+	// update without request from server
 	for (let widget of widget_list) {
 		ItemManager_setItem(
 			path_widget_control + filename_config_widget,
@@ -105,7 +176,35 @@ export function WidgetControl_updateAll() {
 }
 
 
+// get data from server
+export function WidgetControl_pull() {
+	// get list of widget
+	// foreach widget in the list, do updating
+	Server_Layout_updateWidgetIDList();
+}
+
+
+// save data to server
+export function WidgetControl_push() {
+	for (let widget of widget_list) {
+		ItemManager_setItem(
+			path_widget_control + filename_update_widget, widget,
+			true, true
+		);
+
+		ItemManager_setItem(
+			path_widget_control + path_widget_data + widget.id + "/" + filename_update_widget, widget,
+			true, true
+		);
+		Server_Layout_configWidget(widget);
+	}
+}
+
+
 // callback
+//
+// add callback
+//
 // diff. between init widget and add widget
 //
 // init widget
@@ -134,6 +233,26 @@ export function WidgetControl_addCallback_configWidget(callback: any) {
 }
 
 
+export function WidgetControl_addCallback_updateWidget(callback: any) {
+	return ItemManager_addCallback(path_widget_control + filename_update_widget, callback, false);
+}
+
+
+export function WidgetControl_addCallback_ConfigWidget_Single(id_widget: bigint, callback: any) {
+	return ItemManager_addCallback(
+		_getPath_Widget_(id_widget) + filename_update,
+		callback, false);
+}
+
+
+export function WidgetControl_addCallback_RefreshWidget_Single(id_widget: bigint, callback: any) {
+	return ItemManager_addCallback(
+		_getPath_Widget_(id_widget) + filename_refresh,
+		callback, false);
+}
+
+
+// rm callback
 export function WidgetControl_rmCallback_initWidget(callback: any) {
 	return ItemManager_rmCallback(path_widget_control + filename_init_widget, callback);
 }
@@ -151,6 +270,25 @@ export function WidgetControl_rmCallback_rmWidget(callback: any) {
 
 export function WidgetControl_rmCallback_configWidget(callback: any) {
 	return ItemManager_rmCallback(path_widget_control + filename_config_widget, callback);
+}
+
+
+export function WidgetControl_rmCallback_updateWidget(callback: any) {
+	return ItemManager_rmCallback(path_widget_control + filename_update_widget, callback);
+}
+
+
+export function WidgetControl_rmCallback_UpdateWidget_Single(id_widget: bigint, callback: any) {
+	return ItemManager_rmCallback(
+		_getPath_Widget_(id_widget) + filename_update,
+		callback);
+}
+
+
+export function WidgetControl_rmCallback_RefreshWidget_Single(id_widget: bigint, callback: any) {
+	return ItemManager_rmCallback(
+		_getPath_Widget_(id_widget) + filename_refresh,
+		callback);
 }
 
 

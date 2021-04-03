@@ -33,3 +33,8 @@ export function Electron_disableFullScreen() {
 	is_full_screen = false;
 	remote.getCurrentWindow().setFullScreen(is_full_screen);
 }
+
+
+export function Electron_reload() {
+	remote.getCurrentWindow().reload();
+}

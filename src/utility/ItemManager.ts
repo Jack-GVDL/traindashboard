@@ -293,3 +293,16 @@ export function ItemManager_addCallback_UpdatePre(callback: any) {
   hook_update_pre_list.push(callback);
   return true;
 }
+
+
+export function ItemManager_getState() {
+  return {
+    lock_depth: lock_depth
+  };
+}
+
+
+export function ItemManager_getCallback(name: string) {
+  if (!item_callback.has(name)) return [];
+  return item_callback.get(name);
+}

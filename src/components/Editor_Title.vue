@@ -29,12 +29,16 @@ export default {
 	name: "Editor_Title",
 
 	data: () => ({
-		text_title: ""
+		text_title:       "",
+		text_title_prev:  "",
 	}),
 
 	methods: {
 		Handler_setTitle(is_require_blur=false) {
 			// update hook
+			// but compare with previous version to check if something is changed or not
+			if (this.text_title === this.text_title_prev) return;
+			this.text_title_prev = this.text_title;
 			ItemManager_setItem("Editor/Title/hook_update", this.text_title);
 
 			// blur text field

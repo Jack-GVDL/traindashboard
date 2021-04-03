@@ -8,7 +8,8 @@ export default {
 
 	props: [
 		"Interface_data",
-		"Interface_label"
+		"Interface_label",
+		"Interface_option",
 	],
 
 	data: () => ({
@@ -30,59 +31,59 @@ export default {
 			labels: []
 		};
 
-		this.chart_option = {
-			scales: {
-				yAxes: [{
-					display: true,
-					ticks: {
-						fontColor: "#C6C8CA",
-						fontSize: 10,
-						min: 0,
-						padding: 5
-					},
-					gridLines: {
-						zeroLineColor: "white"
-					},
-					scaleLabel: {
-						display: true
-					}
-				}],
-				xAxes: [{
-					display: true,
-					ticks: {
-						fontColor: "#C6C8CA",
-						fontSize: 10,
-						padding: 5
-					},
-					gridLines: {
-						color: "transparent",
-						zeroLineColor: "white"
-					},
-					scaleLabel: {
-						display: true
-					}
-				}]
-			},
-			elements: {
-				point:{
-					radius: 0
-				}
-			},
-			legend: {
-				labels: {
-					fontColor: "#C6C8CA",
-				},
-				display: true
-			},
-			animation: {
-				duration: 1
-			},
-			tooltips: {
-				enabled: true
-			},
-			maintainAspectRatio: false,
-			responsive: true
-		};
+		// this.chart_option = {
+		// 	scales: {
+		// 		yAxes: [{
+		// 			display: true,
+		// 			ticks: {
+		// 				fontColor: "#C6C8CA",
+		// 				fontSize: 10,
+		// 				min: 0,
+		// 				padding: 5
+		// 			},
+		// 			gridLines: {
+		// 				zeroLineColor: "white"
+		// 			},
+		// 			scaleLabel: {
+		// 				display: true
+		// 			}
+		// 		}],
+		// 		xAxes: [{
+		// 			display: true,
+		// 			ticks: {
+		// 				fontColor: "#C6C8CA",
+		// 				fontSize: 10,
+		// 				padding: 5
+		// 			},
+		// 			gridLines: {
+		// 				color: "transparent",
+		// 				zeroLineColor: "white"
+		// 			},
+		// 			scaleLabel: {
+		// 				display: true
+		// 			}
+		// 		}]
+		// 	},
+		// 	elements: {
+		// 		point:{
+		// 			radius: 0
+		// 		}
+		// 	},
+		// 	legend: {
+		// 		labels: {
+		// 			fontColor: "#C6C8CA",
+		// 		},
+		// 		display: true
+		// 	},
+		// 	animation: {
+		// 		duration: 1
+		// 	},
+		// 	tooltips: {
+		// 		enabled: true
+		// 	},
+		// 	maintainAspectRatio: false,
+		// 	responsive: true
+		// };
 
 		// render
 		this.renderChart(this.chart_data, this.chart_option);
@@ -96,6 +97,11 @@ export default {
 
 		Interface_label(new_value, old_value) {
 			this.chart_data.labels = new_value[0];
+			this.renderChart(this.chart_data, this.chart_option);
+		},
+
+		Interface_option(new_value, old_value) {
+			this.chart_option = new_value[0];
 			this.renderChart(this.chart_data, this.chart_option);
 		}
 	}

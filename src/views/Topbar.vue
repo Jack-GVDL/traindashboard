@@ -96,11 +96,12 @@
 <script>
 import {
 	WidgetControl_configWidget,
-	WidgetControl_getWidgetList, WidgetControl_updateAll
+	WidgetControl_getWidgetList,
+	WidgetControl_pull,
+	WidgetControl_push,
+	WidgetControl_updateAll
 } from "@/utility/WidgetControl";
 import {
-	Server_Layout_setLayout,
-	Server_Layout_Status_SetLayout_addCallback
 } from "@/utility/Server_Layout";
 import {
 	ItemManager_setItem
@@ -126,17 +127,13 @@ export default {
 			ItemManager_setItem("Dashboard/toggle_delete_button", null);
 		},
 
+		// TODO
 		Handler_save() {
-			// get widget list
-			const widget_list = WidgetControl_getWidgetList();
-
-			// save to server
-			Server_Layout_setLayout(widget_list);
+			WidgetControl_push();
 		},
 
 		Handler_load() {
-			// load from server
-			// Server_Layout_updateLayout();
+			WidgetControl_pull();
 		},
 
 		Handler_searchWidget() {
@@ -173,6 +170,7 @@ export default {
 				if (widget.id === target_list[index_target].id) {
 					widget.state.is_focused = true;
 					index_target++;
+					if (index_target === size_target) is_ended = true;
 					continue;
 				}
 
@@ -242,7 +240,6 @@ export default {
 	},
 
 	mounted() {
-		Server_Layout_Status_SetLayout_addCallback(this.Hook_updateStatus_SetLayout);
 	},
 
 	watch: {

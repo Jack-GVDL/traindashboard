@@ -127,6 +127,7 @@ import {
 	WidgetControl_addCallback_configWidget,
 	WidgetControl_addCallback_initWidget,
 	WidgetControl_addCallback_rmWidget,
+	WidgetControl_addCallback_updateWidget,
 	WidgetControl_configWidget,
 	WidgetControl_rmWidget
 } from "@/utility/WidgetControl";
@@ -192,13 +193,10 @@ export default {
 
 				// still needed to call cause following is assuming not present / not up-to-date
 				// - layout_index
-				// - func_to_json
 				//
 				// but it is assumed that value type of rest of item are correct
 				const dashboard = this.Internal_addWidget(data.id, data.component);
-
-				data.custom.dashboard.id              = dashboard.id;
-				data.custom.dashboard["func_to_json"] = dashboard.func_to_json;
+				data.custom.dashboard.id = dashboard.id;
 				return;
 			}
 
@@ -236,20 +234,21 @@ export default {
 			this.Internal_configWidget(index, data.custom.dashboard, data.state.is_focused);
 		},
 
-		Hook_WidgetControl_convertToJson(item) {
-			return {
-				// data
-				id:         item.id,
+		Hook_WidgetControl_updateWidget(widget) {
+			if (widget == null) return;
 
-				is_static:  item.is_static,
-				x:          item.x,
-				y:          item.y,
-				w:          item.w,
-				h:          item.h,
-				i:          item.i,
+			// get index
+			const index = this.layout.findIndex(element => element.id === widget.id);
+			if (index < 0) return;
 
-				component:  item.component,
-			}
+			// update widget.custom.dashboard and main info (e.g. widget.x, ...)
+			const dashboard = this.layout[index];
+
+			widget.custom["dashboard"] = dashboard;
+			widget.x = dashboard.x;
+			widget.y = dashboard.y;
+			widget.w = dashboard.w;
+			widget.h = dashboard.h;
 		},
 
 		// hook - internal
@@ -321,6 +320,7 @@ export default {
 		WidgetControl_addCallback_rmWidget(this.Hook_WidgetControl_rmWidget);
 		WidgetControl_addCallback_configWidget(this.Hook_WidgetControl_configWidget);
 		WidgetControl_addCallback_initWidget(this.Hook_WidgetControl_initWidget);
+		WidgetControl_addCallback_updateWidget(this.Hook_WidgetControl_updateWidget);
 	},
 
 	watch: {

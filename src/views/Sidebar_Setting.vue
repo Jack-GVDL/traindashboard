@@ -99,6 +99,26 @@
 				<!-- config item -->
 
 			</v-row>
+
+			<v-spacer></v-spacer>
+
+			<v-row>
+				<v-col>
+					<v-spacer></v-spacer>
+
+					<v-btn
+						@click="Handler_reload()"
+						class="red--text text-body-1 font-weight-light"
+						dark
+						color="transparent"
+						elevation="0"
+
+					>
+						Reload
+					</v-btn>
+				</v-col>
+			</v-row>
+
 		</v-container>
 	</v-navigation-drawer>
 </template>
@@ -113,6 +133,7 @@ import {
 	Server_getAddress
 } from "@/utility/Server_Data";
 import {
+	Electron_reload,
 	Electron_setFullScreen
 } from "@/utility/ElectronControl";
 
@@ -169,6 +190,10 @@ export default {
 		// handler
 		Handler_close() {
 			this.is_enable = false;
+		},
+
+		Handler_reload() {
+			Electron_reload();
 		},
 
 		Handler_setValue(id) {
