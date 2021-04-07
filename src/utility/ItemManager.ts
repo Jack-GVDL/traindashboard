@@ -1,296 +1,503 @@
+// Import
+// ...
+
+
+// Data Structure
+class ItemManager_Callback {
+  // data
+  callback: 	any;
+  data:			any;
+
+  // function
+  constructor(callback: any, data: any) {
+    this.callback 		= callback;
+    this.data	  		= data;
+  }
+
+  execute() {
+    this.callback(this.data);
+  }
+}
+
+
+class ItemManager_Item {
+  // data
+  name:             string;
+
+  callback_list:	ItemManager_Callback[];
+  cache:			any;	// target item
+  flag:			    bigint	= 0n;
+
+  is_updating:	boolean	= false;
+  is_blocked:	boolean	= false;
+  delay_count:	bigint  = 0n;
+
+  // function
+  constructor(name: string) {
+    this.callback_list 	= [];
+    this.cache			= null;
+    this.name           = name;
+  }
+
+  addCallback(callback: any, data: any,) {
+    // check if callback exist or not
+    // if exist, then change data only
+    const index = this.callback_list.findIndex(element => element.callback === callback);
+    if (index >= 0) {
+      this.callback_list[index].data= data;
+      return true;
+    }
+
+    this.callback_list.push(new ItemManager_Callback(callback, data));
+    return true;
+  }
+
+  rmCallback(callback: any) {
+    const index = this.callback_list.findIndex(element => element.callback === callback);
+    if (index < 0) return false;
+
+    this.callback_list.splice(index, 1);
+    return true;
+  }
+
+  update() {
+    // prevent recursion
+    if (this.is_updating) return;
+    this.is_updating = true;
+
+    // invoke callback
+    for (const callback of this.callback_list) {
+      callback.callback(this.cache, callback.data);
+    }
+
+    this.is_updating = false;
+  }
+}
+
+
 // Local Data
-const item_callback = new Map();
-const item_cache    = new Map();
-const item_flag     = new Map();
-const delay_update: string[]  = [];
+const item_table 	= new Map();
 
-let is_updating = false;
-let lock_depth = 0;
+let lock_depth 			= 0;  	// lock_depth
+let lock_depth_limit	= 10;
 
-const hook_update_pre_list: any[]  = [];
+// delay operation
+let delay_time			= 200;  // default: 200ms
+
+// 0: delay operation is execution once current update event is finished
+// 1: delay operation is called by timer
+let delay_mode			= 0;
+let delay_loop_limit	= 5;
+
+const delay_update_a:		any[] 	= [];  	// list of ItemManager_Callback, not map cause need the order
+const delay_update_b:		any[]	= [];
+const delay_update_buffer: 	any[]	= [delay_update_a, delay_update_b];
+let delay_update_cur				= 0;
+
+// debug
+const hook_update_pre_list: 	any[] = [];
+const hook_update_post_list:	any[] = [];
 
 
 // Local Function
-// hash
-// currently the hash is just the string itself
-function _getHash_(name: string) {
-  return name;
+// this is used for delay operation
+function _DelayOperation_rmItem_(name: any) {
+  if (name == null) return;
+  item_table.delete(name);
 }
 
 
-function _addItem_(item_name: string) {
-  // compute item_name hash
-  const hash = _getHash_(item_name);
+function _DelayOperation_updateItem_(name: any) {
+  if (name == null) return;
 
-  // check if the item_name exist or not
-  if (item_cache.has(hash)) return false;
+  // assumed: item must be existed in the table
+  const item: ItemManager_Item = item_table.get(name);
+  _update_(item);
+  item.delay_count--;
+}
+
+
+function _DelayOperation_updateItem_Single_(data: any) {
+  if (data == null) return;
+
+  // data: [name, callback, data]
+  // assumed: item must be existed in the table
+  const item: ItemManager_Item = item_table.get(data[0]);
+  data[1](item.cache, data[2]);
+}
+
+
+function _DelayOperation_setItem_(data: any) {
+  if (data == null) return;
+
+  // data: [name, new_value]
+  // assumed: item must be existed in the table
+  const item: ItemManager_Item = item_table.get(data[0]);
+  item.cache = data[1];
+}
+
+
+function _DelayOperation_addCallback_(data: any) {
+  if (data == null) return;
+
+  // data: [name, callback, data]
+  // assumed: item must be existed in the table
+  const item: ItemManager_Item = item_table.get(data[0]);
+  item.addCallback(data[1], data[2]);
+}
+
+
+function _DelayOperation_rmCallback_(data: any) {
+  if (data == null) return;
+
+  // data: [name, callback, data]
+  // assumed: item must be existed in the table
+  const item: ItemManager_Item = item_table.get(data[0]);
+  item.rmCallback(data[1]);
+}
+
+
+function _DelayOperation_clearCallback_(name: any) {
+  if (name == null) return;
+
+  // data: [name, callback, data]
+  // assumed: item must be existed in the table
+  const item: ItemManager_Item = item_table.get(name);
+  item.callback_list.splice(0, item.callback_list.length);
+}
+
+
+// currently the hash is just the string itself
+// function _getHash_(name: string) {
+// 	return name;
+// }
+
+
+function _addItem_(name: string) {
+  // check if the hash exist or not
+  if (item_table.has(name)) return false;
 
   // actual add
-  item_cache.set(hash, null);
-  item_callback.set(hash, []);
-  item_flag.set(hash, 0);
+  const item = new ItemManager_Item(name);
+  item_table.set(name, item);
   return true;
 }
 
 
-function _rmItem_(item_name: string) {
-  // compute item_name hash
-  const hash = _getHash_(item_name);
+function _rmItem_(name: string) {
+  // check if the hash exist or not
+  if (!item_table.has(name)) return false;
 
-  // check if the item_name exist or not
-  // then check if able to modify the item or not
-  if (!item_cache.has(hash))    return false;
-  if (item_flag.get(hash) == 1) return false;
+  // actual remove
+  // if is updating or update event is scheduled
+  // then delay the remove operation
+  const item: ItemManager_Item = item_table.get(name);
 
-  // actual rm
-  item_cache.delete(hash);
-  item_callback.delete(hash);
-  item_flag.delete(hash);
-  return true;
-}
+  if (lock_depth === 0 && item.delay_count === 0n) {
+    item_table.delete(name);
 
+  } else {
 
-function _setItem_(
-    item_name: string, value: any,
-    is_create: boolean = false, is_invoke: boolean = true, is_immediate: boolean = false) {
+    // mark the item as "dying", it cannot be updated anymore
+    item.is_blocked = true;
 
-  // compute item_name hash
-  const hash = _getHash_(item_name);
-
-  // check if the item_name exist or not
-  // then check if able to modify the item or not
-  if (!item_cache.has(hash)) {
-    if (!is_create) return false;
-    _addItem_(item_name);
+    const delay_update = delay_update_buffer[delay_update_cur];
+    delay_update.push(new ItemManager_Callback(_DelayOperation_rmItem_, name));
   }
-  if (item_flag.get(hash) == 1) return false;
+  return true;
+}
+
+
+function _setItem_(name: string, data: any, is_invoke: boolean, is_immediate: boolean) {
+  // get item
+  // create if not present
+  if (!item_table.has(name)) _addItem_(name);
+  const item: ItemManager_Item = item_table.get(name);
+
+  // check if item is dying
+  if (item.is_blocked) return false;
 
   // set item
-  item_cache.set(hash, value)
+  // allow config data if item is pending for update (delay state)
+  // but not allow config data if item is already updating (calling callback)
+  //
+  // if item is updating
+  // delay the set item operation
+  if (item.is_updating) {
+    const delay_update = delay_update_buffer[delay_update_cur];
+    delay_update.push(new ItemManager_Callback(_DelayOperation_setItem_, [name, data]));
+    if (is_invoke) delay_update.push(new ItemManager_Callback(_DelayOperation_updateItem_, name));
+    return;
+  }
 
-  // callback
-  if (is_invoke) _update_(null, hash, true, is_immediate);
+  item.cache = data;
+  if (is_invoke) _updateItem_(name, is_immediate);
+}
+
+
+function _getItem_(name: string) {
+  // get item
+  if (!item_table.has(name)) return null;
+  return item_table.get(name).cache;
+}
+
+
+// the core part of update event
+function _update_(item: ItemManager_Item) {
+  // debug
+  for (let callback of hook_update_pre_list) {
+    callback(item);
+  }
+
+  // actual update
+  item.update();
+
+  // debug
+  for (let callback of hook_update_post_list) {
+    callback(item);
+  }
+}
+
+
+function _updateItem_(name: string, is_immediate: boolean) {
+  // check if the hash exist or not
+  if (!item_table.has(name)) return false;
+
+  // get item and verify the item can be updated or not
+  const item: ItemManager_Item = item_table.get(name);
+  if (item.is_blocked) return false;
+
+  // check if can update immediately
+  // is_immediate can bypass the lock restriction (unless lock_depth reach the limit)
+  if (is_immediate && lock_depth < lock_depth_limit) {
+
+    lock_depth++;
+    _update_(item);
+    lock_depth--;
+
+    if (delay_mode === 0) _executeDelayed_();
+    return true;
+  }
+
+  // not immediate, but there is no other update event
+  if (lock_depth == 0) {
+
+    lock_depth++;
+    _update_(item);
+    lock_depth--;
+
+    if (delay_mode === 0) _executeDelayed_();
+    return;
+  }
+
+  // there is other update event
+  // delay operation is needed
+  item.delay_count++;
+  const delay_update = delay_update_buffer[delay_update_cur];
+
+  delay_update.push(new ItemManager_Callback(_DelayOperation_updateItem_, name));
   return true;
 }
 
 
-function _getItem_(item_name: string, default_none: any = null) {
-  // compute item_name hash
-  const hash = _getHash_(item_name);
+// update delayed operation
+function _executeDelayed_() {
+  let count = 0;
+  while (
+      (delay_loop_limit === -1 || count < delay_loop_limit) &&
+      delay_update_buffer[delay_update_cur].length !== 0) {
 
-  // check if the item_name exist or not
-  // if not exist, return default none
-  // else, return the value
-  if (!item_cache.has(hash)) return default_none;
-  return item_cache.get(hash);
+    _executeDelayed_Single_();
+    ++count;
+  }
 }
 
 
-function _getIsExist_(item_name: string) {
-  // compute item_name hash
-  const hash = _getHash_(item_name)
+function _executeDelayed_Single_() {
+  if (lock_depth !== 0) return;
 
-  // check if item exist or not
-  if (!item_cache.has(hash)) return false;
-  return true;
+  // _executeDelayed_ may consist of update event
+  // so it will use the lock
+  lock_depth++;
+
+  // switch buffer
+  const delay_update = delay_update_buffer[delay_update_cur];
+  delay_update_cur = (delay_update_cur + 1) % delay_update_buffer.length;
+
+  // operate delayed operation
+  for (let callback of delay_update) {
+    callback.execute();
+  }
+
+  // clear used buffer
+  delay_update.splice(0, delay_update.length);
+
+  // release lock
+  lock_depth--;
 }
 
 
 function _addCallback_(
-  item_name: any, callback: any,
-  data: any = null, is_create: boolean = true, is_invoke: boolean = true) {
+    name: string, callback: any, data: any,
+    is_create: boolean, is_invoke: boolean) {
 
-  // compute item_name hash
-  const hash = _getHash_(item_name);
-
-  // check if the item_name exist or not
-  if (!item_cache.has(hash)) {
+  // get item and check if item existed or not
+  // if not exist, then check if able to create
+  if (!item_table.has(name)) {
     if (!is_create) return false;
-    _addItem_(item_name);
+    _addItem_(name);
   }
 
-  // check if callback already existed in callback_list
-  // if existed, just update the data part is ok
-  const callback_list = item_callback.get(hash);
-  const index = callback_list.findIndex((element: any[]) => element[0] == callback);
+  const item: ItemManager_Item = item_table.get(name);
+  if (item.is_blocked) return false;
 
-  if (index >= 0) {
-    callback_list[index][1] = data;
+  // ----- add callback -----
+  if (item.is_updating) {
+    const delay_update = delay_update_buffer[delay_update_cur];
+    delay_update.push(new ItemManager_Callback(_DelayOperation_addCallback_, [name, callback, data]));
+    return;
+  }
+
+  item.addCallback(callback, data);
+
+  // ----- update -----
+  // single invoke (invoke single callback, not all the callback)
+  if (!is_invoke) return true;
+
+  // immediate update
+  if (lock_depth === 0) {
+    lock_depth++;
+    callback(item.cache, data);
+    lock_depth--;
     return true;
   }
 
-  // add to callback
-  callback_list.push([callback, data]);
-
-  // check if need to update
-  if (!is_invoke) return true;
-
-  // update this callback only
-  // remember to lock the item before calling the callback and unlock it after done
-  const cache = item_cache.get(hash);
-  item_flag.set(hash, 1);
-  callback(cache, data);
-  item_flag.set(hash, 0);
-
+  // delay update
+  const delay_update = delay_update_buffer[delay_update_cur];
+  delay_update.push(new ItemManager_Callback(_DelayOperation_updateItem_Single_, [name, callback, data]));
   return true;
 }
 
 
-function _rmCallback_(item_name: any, callback: any) {
-  // compute item_name hash
-  const hash = _getHash_(item_name);
-
-  // check if the item_name exist or not
-  if (!item_cache.has(hash)) return false;
-
-  // actual removal
-  const callback_list = item_callback.get(hash);
-  const index = callback_list.findIndex((element: any[]) => element[0] == callback);
-  if (index < 0) return false;
-
-  callback_list.splice(index, 1);
-  return true;
-}
-
-
-function _clearCallback_(item_name: any) {
-  // compute item_name hash
-  const hash = _getHash_(item_name);
-
-  // check if the item_name exist or not
-  if (!item_cache.has(hash)) return false;
-
-  // actual removal
-  const callback_list = item_callback.get(hash);
-  while (callback_list.length !== 0) callback_list.pop();
-
-  return true;
-}
-
-
-function _updateDelayed_() {
-  while (delay_update.length !== 0) {
-    const item_name = delay_update[0];
-    delay_update.splice(0, 1);
-    _update_(item_name);
-  }
-}
-
-
-function _update_(item_name: any, hash: any = null, is_checked: boolean = false, is_immediate: boolean = false) {
-  // compute item_name hash
-  if (hash == null) hash = _getHash_(item_name);
-
-  // check if the item_name exist or not
-  // then check if the item already in update process or not
-  if (!is_checked && !item_cache.has(hash)) return false;
-  if (item_flag.get(hash) == 1)             return false;
-
-  // global update lock
-  // but there is a situation that can bypass the lock: immediate update
-  if (is_updating && !is_immediate) {
-    delay_update.push(hash);
-    return;
-  }
-  is_updating = true;
-  lock_depth++;
-
-  // ----- item -----
+function _rmCallback_(name: string, callback: any) {
   // get item
-  const item = item_cache.get(hash);
+  if (!item_table.has(name)) return false;
+  const item: ItemManager_Item = item_table.get(name);
 
-  // lock the item
-  item_flag.set(hash, 1);
+  if (item.is_blocked) return false;
 
-  // ----- callback -----
-  const callback_list = item_callback.get(hash);
+  // ----- rm callback -----
+  if (item.is_updating) {
+    const index = item.callback_list.findIndex(element => element === callback);
+    if (index < 0) return false;
 
-  // hook: before update
-  for (const callback of hook_update_pre_list) {
-    callback(hash, item, callback_list);
+    const delay_update = delay_update_buffer[delay_update_cur];
+    delay_update.push(new ItemManager_Callback(_DelayOperation_rmCallback_, [name, callback]));
+    return true;
   }
 
-  // foreach callback
-  for (const callback of callback_list) {
-    callback[0](item, callback[1]);
-  }
-
-  // hook
-  // TODO
-
-  // unlock the item
-  item_flag.set(hash, 0);
-
-  // unlock global update flag if lock_depth === 0
-  // if unlocked, update pending update
-  lock_depth--;
-  if (lock_depth === 0) {
-    is_updating = false;
-    _updateDelayed_();
-  }
-
-  return true;
+  return item.rmCallback(callback);
 }
 
 
-function _getKeyList_() {
-  return Array.from(item_cache.keys());
+function _clearCallback_(name: string) {
+  // get item
+  if (!item_table.has(name)) return false;
+  const item: ItemManager_Item = item_table.get(name);
+
+  if (item.is_blocked) return false;
+
+  // ----- clear callback -----
+  if (item.is_updating) {
+    const delay_update = delay_update_buffer[delay_update_cur];
+    delay_update.push(new ItemManager_Callback(_DelayOperation_clearCallback_, name));
+    return true;
+  }
+
+  item.callback_list.splice(0, item.callback_list.length);
+  return true;
 }
 
 
 // Global Function
 export function ItemManager_addCallback(
-    item_name: string, callback: any,
+    name: string, callback: any,
     is_invoke: boolean = true, data: any = null) {
 
-  return _addCallback_(item_name, callback, data, true, is_invoke);
+  return _addCallback_(name, callback, data, true, is_invoke);
 }
 
 
-export function ItemManager_rmCallback(item_name: string, callback: any) {
-  return _rmCallback_(item_name, callback);
+export function ItemManager_rmCallback(name: string, callback: any) {
+  return _rmCallback_(name, callback);
 }
 
 
-export function ItemManager_clearCallback(item_name: string) {
-  return _clearCallback_(item_name);
+export function ItemManager_clearCallback(name: string) {
+  return _clearCallback_(name);
 }
 
 
 export function ItemManager_setItem(
-    item_name: string, value: any,
+    name: string, value: any,
     is_invoke: boolean = true, is_immediate: boolean = false) {
-
-  return _setItem_(item_name, value, true, is_invoke, is_immediate);
+  return _setItem_(name, value, is_invoke, is_immediate);
 }
 
 
-export function ItemManager_updateItem(item_name: string, is_immediate: boolean = false) {
-  return _update_(item_name, null, false, is_immediate);
+export function ItemManager_updateItem(name: string, is_immediate: boolean = false) {
+  return _updateItem_(name, is_immediate);
 }
 
 
-export function ItemManager_getItem(item_name: string, default_none: any = null) {
-  return _getItem_(item_name, default_none);
-}
-
-
-export function ItemManager_getIsExist(item_name: string) {
-  return _getIsExist_(item_name);
+export function ItemManager_getItem(name: string) {
+  return _getItem_(name);
 }
 
 
 // debug
+export function ItemManager_getIsExist(name: string) {
+  return item_table.has(name);
+}
+
+
 export function ItemManager_getKeyList() {
-  return _getKeyList_();
+  return Array.from(item_table.keys());
 }
 
 
 export function ItemManager_addCallback_UpdatePre(callback: any) {
-  const index = hook_update_pre_list.findIndex(element => element == callback);
+  const index = hook_update_pre_list.findIndex(element => element === callback);
   if (index >= 0) return false;
 
   hook_update_pre_list.push(callback);
+  return true;
+}
+
+
+export function ItemManager_addCallback_UpdatePost(callback: any) {
+  const index = hook_update_post_list.findIndex(element => element === callback);
+  if (index >= 0) return false;
+
+  hook_update_post_list.push(callback);
+  return true;
+}
+
+
+export function ItemManager_rmCallback_UpdatePre(callback: any) {
+  const index = hook_update_pre_list.findIndex(element => element === callback);
+  if (index < 0) return false;
+
+  hook_update_pre_list.splice(index, 1);
+  return true;
+}
+
+
+export function ItemManager_rmCallback_UpdatePost(callback: any) {
+  const index = hook_update_post_list.findIndex(element => element === callback);
+  if (index < 0) return false;
+
+  hook_update_post_list.splice(index, 1);
   return true;
 }
 
@@ -303,6 +510,7 @@ export function ItemManager_getState() {
 
 
 export function ItemManager_getCallback(name: string) {
-  if (!item_callback.has(name)) return [];
-  return item_callback.get(name);
+  if (!item_table.has(name)) return [];
+  const list = item_table.get(name).callback_list;
+  return Array.from(list);
 }

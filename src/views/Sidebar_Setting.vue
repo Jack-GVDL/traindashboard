@@ -189,7 +189,7 @@ export default {
 	methods: {
 		// handler
 		Handler_close() {
-			this.is_enable = false;
+			ItemManager_setItem("Setting/enable", false);
 		},
 
 		Handler_reload() {
@@ -208,6 +208,7 @@ export default {
 
 		// hook
 		Hook_enable(data) {
+			if (data == null) return;
 			this.is_enable = data;
 		},
 

@@ -273,9 +273,6 @@ export default {
 				component:  component,
 
 				style_card: "",
-
-				// function
-				func_to_json:   this.Hook_WidgetControl_convertToJson,
 			};
 			this.layout_index++;
 

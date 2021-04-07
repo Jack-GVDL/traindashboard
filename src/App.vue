@@ -37,6 +37,8 @@ export default Vue.extend({
 		Server_update();
 		Observer_LogData_init();
 		WidgetControl_init();
+
+		// ItemManager_addCallback_UpdatePre((data: any) => console.log(data.name));
 	}
 });
 </script>
