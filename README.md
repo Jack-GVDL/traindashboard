@@ -1,24 +1,25 @@
-# traindashboard
+# Train Dashboard
 
 ## Project setup
+
+Install necessary package
+
 ```
 npm install
 ```
 
-### Compiles and hot-reloads for development
+Development
+
 ```
 npm run serve
 ```
 
-### Compiles and minifies for production
+Production
+
 ```
 npm run build
 ```
 
-### Lints and fixes files
-```
-npm run lint
-```
+### Server Setup
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+[DataLog](https://github.com/Jack-GVDL/DataLog)
