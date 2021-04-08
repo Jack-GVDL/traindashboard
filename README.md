@@ -2,7 +2,7 @@
 
 ![TrainDashboard](/document/TrainDashboard.JPG)
 
-## Project setup
+## Project Setup
 
 Install necessary package
 
