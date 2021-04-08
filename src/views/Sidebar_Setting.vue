@@ -1,5 +1,6 @@
 <template>
 	<v-navigation-drawer
+		style="position: fixed;"
 		v-model="is_enable"
 		class="background_panel"
 		width="50vh"

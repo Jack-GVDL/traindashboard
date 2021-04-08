@@ -42,11 +42,11 @@ class ItemManager_Item {
   addCallback(callback: any, data: any,) {
     // check if callback exist or not
     // if exist, then change data only
-    const index = this.callback_list.findIndex(element => element.callback === callback);
-    if (index >= 0) {
-      this.callback_list[index].data= data;
-      return true;
-    }
+    // const index = this.callback_list.findIndex(element => element.callback === callback);
+    // if (index >= 0) {
+    //   this.callback_list[index].data= data;
+    //   return true;
+    // }
 
     this.callback_list.push(new ItemManager_Callback(callback, data));
     return true;
@@ -78,7 +78,7 @@ class ItemManager_Item {
 // Local Data
 const item_table 	= new Map();
 
-let lock_depth 			= 0;  	// lock_depth
+let lock_depth 			= new Uint16Array(1);  // lock_depth
 let lock_depth_limit	= 10;
 
 // delay operation
@@ -193,7 +193,7 @@ function _rmItem_(name: string) {
   // then delay the remove operation
   const item: ItemManager_Item = item_table.get(name);
 
-  if (lock_depth === 0 && item.delay_count === 0n) {
+  if (Atomics.load(lock_depth, 0) === 0 && item.delay_count === 0n) {
     item_table.delete(name);
 
   } else {
@@ -204,6 +204,7 @@ function _rmItem_(name: string) {
     const delay_update = delay_update_buffer[delay_update_cur];
     delay_update.push(new ItemManager_Callback(_DelayOperation_rmItem_, name));
   }
+
   return true;
 }
 
@@ -269,22 +270,22 @@ function _updateItem_(name: string, is_immediate: boolean) {
 
   // check if can update immediately
   // is_immediate can bypass the lock restriction (unless lock_depth reach the limit)
-  if (is_immediate && lock_depth < lock_depth_limit) {
+  if (is_immediate && Atomics.load(lock_depth, 0) < lock_depth_limit) {
 
-    lock_depth++;
+    Atomics.add(lock_depth, 0, 1);
     _update_(item);
-    lock_depth--;
+    Atomics.sub(lock_depth, 0, 1);
 
     if (delay_mode === 0) _executeDelayed_();
     return true;
   }
 
   // not immediate, but there is no other update event
-  if (lock_depth == 0) {
+  if (Atomics.load(lock_depth, 0) === 0) {
 
-    lock_depth++;
+    Atomics.add(lock_depth, 0, 1);
     _update_(item);
-    lock_depth--;
+    Atomics.sub(lock_depth, 0, 1);
 
     if (delay_mode === 0) _executeDelayed_();
     return;
@@ -314,11 +315,11 @@ function _executeDelayed_() {
 
 
 function _executeDelayed_Single_() {
-  if (lock_depth !== 0) return;
+  if (Atomics.load(lock_depth, 0) !== 0) return;
 
   // _executeDelayed_ may consist of update event
   // so it will use the lock
-  lock_depth++;
+  Atomics.add(lock_depth, 0, 1);
 
   // switch buffer
   const delay_update = delay_update_buffer[delay_update_cur];
@@ -333,7 +334,7 @@ function _executeDelayed_Single_() {
   delay_update.splice(0, delay_update.length);
 
   // release lock
-  lock_depth--;
+  Atomics.sub(lock_depth, 0, 1);
 }
 
 
@@ -355,6 +356,7 @@ function _addCallback_(
   if (item.is_updating) {
     const delay_update = delay_update_buffer[delay_update_cur];
     delay_update.push(new ItemManager_Callback(_DelayOperation_addCallback_, [name, callback, data]));
+    delay_update.push(new ItemManager_Callback(_DelayOperation_updateItem_Single_, [name, callback, data]));
     return;
   }
 
@@ -365,10 +367,10 @@ function _addCallback_(
   if (!is_invoke) return true;
 
   // immediate update
-  if (lock_depth === 0) {
-    lock_depth++;
+  if (Atomics.load(lock_depth, 0) === 0) {
+    Atomics.add(lock_depth, 0, 1);
     callback(item.cache, data);
-    lock_depth--;
+    Atomics.sub(lock_depth, 0, 1);
     return true;
   }
 

@@ -126,7 +126,7 @@ function request_GetLog_Data(id_: bigint) {
         };
 
         // register the id
-        id_map.set(data.id, null);
+        if (!id_map.has(data.id)) id_map.set(data.id, null);
 
         // update event
         ItemManager_setItem(path_log_data + id_, data);

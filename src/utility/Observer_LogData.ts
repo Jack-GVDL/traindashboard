@@ -4,9 +4,10 @@ import {
     ItemManager_updateItem,
     ItemManager_addCallback,
     ItemManager_rmCallback,
-    ItemManager_getItem, ItemManager_getKeyList
+    ItemManager_getItem,
+    ItemManager_getKeyList,
+    ItemManager_getCallback
 } from "./ItemManager";
-
 import {
     path_log_data,
     filename_log_data_name_list,
@@ -58,6 +59,7 @@ class Observer_LogData {
                 _getPath_Observer_AddInterface_(self.id),
                 item
             );
+
             return;
         }
 
@@ -174,8 +176,7 @@ function _destroy_(id_observer: bigint) {
 
 function _addDataLog_(id_observer: bigint, id_log_data: bigint) {
     // try to get the observer
-    const observer: Observer_LogData = ItemManager_getItem(
-        _getPath_Observer_(id_observer));
+    const observer: Observer_LogData = ItemManager_getItem(_getPath_Observer_(id_observer));
     if (observer == null) return false;
 
     // check if reach the max bind number
@@ -193,8 +194,7 @@ function _addDataLog_(id_observer: bigint, id_log_data: bigint) {
 
 function _rmDataLog_(id_observer: bigint, id_log_data: bigint) {
     // try to get the observer
-    const observer: Observer_LogData = ItemManager_getItem(
-        _getPath_Observer_(id_observer));
+    const observer: Observer_LogData = ItemManager_getItem(_getPath_Observer_(id_observer));
     if (observer == null) return false;
 
     // rm callback

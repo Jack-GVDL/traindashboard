@@ -1,5 +1,6 @@
 <template>
 	<v-toolbar
+		style="top: 0; position: sticky; z-index: 1;"
 		color="#1c212c"
 	>
 

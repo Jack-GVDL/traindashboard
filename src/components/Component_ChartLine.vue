@@ -146,9 +146,6 @@ export default {
 				},
 			]);
 
-			// editor
-			ItemManager_setItem("Editor/enable", true);
-
 			// editor - dataset
 			ItemManager_setItem("Editor/Dataset/id_observer", this.id_observer);
 
@@ -161,6 +158,9 @@ export default {
 			ItemManager_setItem("Editor/ValueConfig/data", this.value_config_list);
 			ItemManager_clearCallback("Editor/ValueConfig/hook_update");
 			ItemManager_addCallback("Editor/ValueConfig/hook_update", this.Hook_updateValue, false);
+
+			// editor
+			ItemManager_setItem("Editor/enable", true);
 		},
 
 		// hook - observer (data)

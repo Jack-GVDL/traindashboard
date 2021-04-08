@@ -3,11 +3,16 @@
 
 		<!-- sidebar -->
 		<v-container
-				style="width: 300px;"
-				class="px-0 py-0"
-				color="grey-lighten-3"
-				permanent
+			style="width: 300px; height: 100vh; top: 0; position: sticky;"
+			class="px-0 py-0"
+			color="grey-lighten-3"
+			permanent
 		>
+<!--			<div-->
+<!--				style="height: 50px; background-color: transparent;"-->
+<!--			>-->
+<!--			</div>-->
+
 			<v-row
 					style="width: 300px;"
 					class="grow fill-height"
@@ -16,11 +21,11 @@
 
 				<!-- drawer left -->
 				<v-navigation-drawer
-						class="background_panel_darken_1"
-						dense
-						mini-variant
-						mini-variant-width="50"
-						permanent
+					class="background_panel_darken_1"
+					dense
+					mini-variant
+					mini-variant-width="50"
+					permanent
 				>
 					<div
 						style="height: 100%;"
@@ -28,35 +33,37 @@
 					>
 
 						<!-- top button -->
-						<v-container>
-							<v-row
-								class="py-2"
-							>
-							</v-row>
+<!--						<v-container>-->
+<!--							<v-row-->
+<!--								class="py-2"-->
+<!--							>-->
+<!--							</v-row>-->
 
-							<v-row
-								class="py-1 d-flex justify-center"
-							>
-								<v-btn
-									icon
-									color="white"
-								>
-									<v-icon>mdi-plus</v-icon>
-								</v-btn>
-							</v-row>
+<!--							<v-row-->
+<!--								class="py-1 d-flex justify-center"-->
+<!--							>-->
+<!--								<v-btn-->
+<!--									icon-->
+<!--									color="white"-->
+<!--								>-->
+<!--									<v-icon>mdi-plus</v-icon>-->
+<!--								</v-btn>-->
+<!--							</v-row>-->
 
-							<v-row
-								class="py-1 d-flex justify-center"
-							>
-								<v-btn
-									icon
-									color="white"
-								>
-									<v-icon>mdi-plus</v-icon>
-								</v-btn>
-							</v-row>
-						</v-container>
+<!--							<v-row-->
+<!--								class="py-1 d-flex justify-center"-->
+<!--							>-->
+<!--								<v-btn-->
+<!--									icon-->
+<!--									color="white"-->
+<!--								>-->
+<!--									<v-icon>mdi-plus</v-icon>-->
+<!--								</v-btn>-->
+<!--							</v-row>-->
+<!--						</v-container>-->
 						<!-- top button -->
+
+						<v-spacer></v-spacer>
 
 						<!-- bottom button -->
 						<div>
@@ -210,6 +217,15 @@
 		</v-container>
 		<!-- sidebar -->
 
+<!--		<div-->
+<!--			style="width: 350px;"-->
+<!--		>-->
+<!--		</div>-->
+
+<!--		&lt;!&ndash; topbar &ndash;&gt;-->
+<!--		<Topbar/>-->
+<!--		&lt;!&ndash; topbar &ndash;&gt;-->
+
 		<!-- dashboard -->
 		<Dashboard/>
 		<!-- dashboard -->
@@ -230,6 +246,7 @@
 import Dashboard from "@/views/Dashboard";
 import Sidebar_Editor from "@/views/Sidebar_Editor";
 import Sidebar_Setting from "@/views/Sidebar_Setting";
+import Topbar from "@/views/Topbar";
 import {
 	ItemManager_setItem,
 } from "@/utility/ItemManager";
@@ -242,6 +259,7 @@ export default {
 	name: "Main",
 
 	components: {
+		// Topbar,
 		Sidebar_Setting,
 		Sidebar_Editor,
 		Dashboard

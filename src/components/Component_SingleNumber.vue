@@ -69,11 +69,14 @@ import {
 import {
 	Observer_LogData_addCallback_Add,
 	Observer_LogData_addCallback_Config,
-	Observer_LogData_addCallback_Rm,
+	Observer_LogData_addCallback_Rm, Observer_LogData_bindData,
 	Observer_LogData_create, Observer_LogData_setSizeMax
 } from "@/utility/Observer_LogData"
 import {
-	WidgetControl_configWidget
+	WidgetControl_addCallback_ConfigWidget_Single,
+	WidgetControl_addCallback_RefreshWidget_Single,
+	WidgetControl_configWidget,
+	WidgetControl_updateWidget
 } from "@/utility/WidgetControl";
 
 
@@ -105,11 +108,13 @@ export default {
 				component:  "Config_ValueSelect",
 				value:      "First",
 				callback:   null,
-				custom:     ["First", "Last", "Average", "Sum", "Low", "High"],
+				custom:     ["First", "Last", "Average", "Sum", "Lowest", "Highest"],
 			},
 		],
 
 		// data cache
+		data_id:      -1,
+
 		data_first:   "---",
 		data_last:    "---",
 		data_sum:     "---",
@@ -155,9 +160,9 @@ export default {
 		// hook - observer
 		Hook_Observer_addData(data) {
 			if (data == null) return;
+
 			this.Internal_setData(data);
 			this.Internal_updateData();
-
 		},
 
 		Hook_Observer_rmData(data) {
@@ -177,9 +182,46 @@ export default {
 			if (data == null) return;
 			this.Internal_setData(data);
 			this.Internal_updateData();
+		},
 
-			// set title to widget
-			WidgetControl_configWidget(this.Interface_id, (widget) => widget.name = title);
+		// hook - widget control
+		Hook_WidgetControl_configWidget(widget) {
+			if (widget == null) return;
+
+			// check data.custom.component_single_number
+			if (widget.custom["component_single_number"] !== undefined) {
+				const custom = widget.custom["component_single_number"];
+
+				// title
+				this.text_title = custom.title;
+
+				// data mode
+				this.data_mode = custom.data_mode;
+
+				// log data
+				const data_list = custom.data_list;
+				if (data_list.length === 0) return;
+				Observer_LogData_bindData(this.id_observer, data_list[0].id);
+
+				return;
+			}
+
+			// add new one
+			widget.custom["component_single_number"] = {
+				title:      this.text_title,
+				data_list:  [{ id: this.data_id }],
+				data_mode:  this.data_mode,
+			};
+		},
+
+		Hook_WidgetControl_refreshWidget(widget) {
+			if (widget == null) return;
+
+			widget.custom["component_single_number"] = {
+				title:      this.text_title,
+				data_list:  [{ id: this.data_id }],
+				data_mode:  this.data_mode,
+			};
 		},
 
 		// hook - editor
@@ -188,7 +230,12 @@ export default {
 			this.text_title = title;
 
 			// set title to widget
-			WidgetControl_configWidget(this.Interface_id, (widget) => widget.name = title);
+			WidgetControl_configWidget(
+				this.Interface_id,
+				(widget) => {
+					widget.name                                 = title;
+					widget.custom.component_single_number.title = title;
+				});
 		},
 
 		Hook_updateValue(data) {
@@ -208,6 +255,8 @@ export default {
 
 		// internal
 		Internal_setData(data) {
+			this.data_id = data.log_data.id;
+
 			this.data_first   = "---";
 			this.data_last    = "---";
 			this.data_average = "---";
@@ -259,8 +308,8 @@ export default {
 				"Last",
 				"Sum",
 				"Average",
-				"Low",
-				"High"
+				"Lowest",
+				"Highest"
 			];
 
 			const index = table.findIndex(element => element === mode);
@@ -282,6 +331,11 @@ export default {
 		Observer_LogData_addCallback_Add(     this.id_observer, this.Hook_Observer_addData);
 		Observer_LogData_addCallback_Rm(      this.id_observer, this.Hook_Observer_rmData);
 		Observer_LogData_addCallback_Config(  this.id_observer, this.Hook_Observer_configData);
+
+		// widget control
+		WidgetControl_addCallback_RefreshWidget_Single(this.Interface_id, this.Hook_WidgetControl_refreshWidget);
+		WidgetControl_addCallback_ConfigWidget_Single(this.Interface_id, this.Hook_WidgetControl_configWidget);
+		WidgetControl_updateWidget(this.Interface_id, false);
 	},
 }
 </script>

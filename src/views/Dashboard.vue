@@ -3,11 +3,12 @@
 			style="width: 100%;"
 			class="background_back"
 	>
+
 		<Topbar/>
 
 		<grid-layout
 				:layout.sync="layout"
-				:col-num="3"
+				:col-num="layout_col"
 				:row-height="30"
 				:is-draggable="draggable"
 				:is-resizable="resizable"
@@ -71,7 +72,7 @@
 								>
 									<v-icon
 										small
-										color="white"
+										color="red"
 									>
 										mdi-close
 									</v-icon>
@@ -163,7 +164,7 @@ export default {
 
 		layout: [],
 		layout_index: 1,
-		layout_col:   3,
+		layout_col:   12,
 
 		// display
 		icon_minimize:  "mdi-minus",
@@ -197,6 +198,11 @@ export default {
 				// but it is assumed that value type of rest of item are correct
 				const dashboard = this.Internal_addWidget(data.id, data.component);
 				data.custom.dashboard.id = dashboard.id;
+
+				dashboard.x = data.custom.dashboard.x;
+				dashboard.y = data.custom.dashboard.y;
+				dashboard.w = data.custom.dashboard.w;
+				dashboard.h = data.custom.dashboard.h;
 				return;
 			}
 
@@ -265,8 +271,8 @@ export default {
 
 				is_static:  false,
 				x:          0,
-				y:          this.layout.length * 5,
-				w:          2,
+				y:          this.layout.length * 10,
+				w:          6,
 				h:          10,
 				i:          this.layout_index,
 
@@ -289,10 +295,10 @@ export default {
 		Internal_configWidget(index, data, is_focused) {
 			// reset data
 			this.layout[index].is_static  = data.is_static;
-			// this.layout[index].x          = data.x;
-			// this.layout[index].y          = data.y;
-			// this.layout[index].w          = data.w;
-			// this.layout[index].h          = data.h;
+			this.layout[index].x          = data.x;
+			this.layout[index].y          = data.y;
+			this.layout[index].w          = data.w;
+			this.layout[index].h          = data.h;
 			this.layout[index].i          = data.i;
 			this.layout[index].component  = data.component;
 
