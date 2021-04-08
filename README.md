@@ -1,5 +1,7 @@
 # Train Dashboard
 
+![TrainDashboard](/document/TrainDashboard.JPG)
+
 ## Project setup
 
 Install necessary package
